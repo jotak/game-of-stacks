@@ -25,5 +25,10 @@ hs_err_pid*
 # node_modules
 ui/src/main/resources/webroot/node_modules
 
-.idea
 **/target/*
+
+# IntelliJ
+.idea
+*.ipr
+*.iml
+*.iws
