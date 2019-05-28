@@ -5,18 +5,37 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>demo.gos</groupId>
-  <artifactId>demo-mesh-common</artifactId>
+  <artifactId>gos-common</artifactId>
   <version>0.0.1</version>
+
+  <properties>
+    <vertx.version>3.6.0</vertx.version>
+  </properties>
 
   <dependencies>
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-micrometer-metrics</artifactId>
+      <version>${vertx.version}</version>
     </dependency>
     <dependency>
       <groupId>io.micrometer</groupId>
       <artifactId>micrometer-registry-prometheus</artifactId>
+      <version>1.1.0</version>
     </dependency>
   </dependencies>
 
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.1</version>
+        <configuration>
+          <source>1.8</source>
+          <target>1.8</target>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>

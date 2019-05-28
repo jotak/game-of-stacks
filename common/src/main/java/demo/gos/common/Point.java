@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package demo.mesharena.common;
+package demo.gos.common;
 
 import java.util.Objects;
 

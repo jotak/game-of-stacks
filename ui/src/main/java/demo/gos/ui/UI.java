@@ -1,10 +1,6 @@
-package demo.mesharena.ui;
+package demo.gos.ui;
 
-import demo.mesharena.common.Commons;
-import demo.mesharena.common.TracingContext;
-import io.opentracing.Span;
-import io.opentracing.contrib.vertx.ext.web.TracingHandler;
-import io.opentracing.propagation.Format.Builtin;
+import demo.gos.common.Commons;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -24,12 +20,10 @@ import io.vertx.ext.web.handler.sockjs.SockJSHandler;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static demo.mesharena.common.Commons.STADIUM_HOST;
-import static demo.mesharena.common.Commons.STADIUM_PORT;
-import static demo.mesharena.common.Commons.TRACER;
+import static demo.gos.common.Commons.STADIUM_HOST;
+import static demo.gos.common.Commons.STADIUM_PORT;
 
 public class UI extends AbstractVerticle {
 
@@ -47,12 +41,6 @@ public class UI extends AbstractVerticle {
     HttpServerOptions serverOptions = new HttpServerOptions().setPort(Commons.UI_PORT);
 
     Router router = Router.router(vertx);
-    TRACER.ifPresent(tracer -> {
-      TracingHandler handler = new TracingHandler(tracer);
-      router.route()
-          .order(-1).handler(handler)
-          .failureHandler(handler);
-    });
 
     // Allow events for the designated addresses in/out of the event bus bridge
     BridgeOptions opts = new BridgeOptions()
@@ -97,24 +85,18 @@ public class UI extends AbstractVerticle {
       msg.reply(new JsonArray(objects));
     });
     eb.consumer("centerBall", msg -> {
-      Optional<Span> span = TRACER.map(tracer -> tracer.buildSpan("centerBall").start());
       HttpRequest<Buffer> request = WebClient.create(vertx)
           .get(STADIUM_PORT, STADIUM_HOST, "/centerBall");
-      span.ifPresent(s -> TRACER.get().inject(s.context(), Builtin.HTTP_HEADERS, new TracingContext(request.headers())));
       request.send(ar -> {
-        span.ifPresent(Span::finish);
         if (!ar.succeeded()) {
           ar.cause().printStackTrace();
         }
       });
     });
     eb.consumer("randomBall", msg -> {
-      Optional<Span> span = TRACER.map(tracer -> tracer.buildSpan("randomBall").start());
       HttpRequest<Buffer> request = WebClient.create(vertx)
           .get(STADIUM_PORT, STADIUM_HOST, "/randomBall");
-      span.ifPresent(s -> TRACER.get().inject(s.context(), Builtin.HTTP_HEADERS, new TracingContext(request.headers())));
       request.send(ar -> {
-        span.ifPresent(Span::finish);
         if (!ar.succeeded()) {
           ar.cause().printStackTrace();
         }
