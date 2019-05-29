@@ -3,7 +3,6 @@ package demo.gos.ui;
 import demo.gos.common.Commons;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonArray;
@@ -11,8 +10,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.bridge.PermittedOptions;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.client.HttpRequest;
-import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.ext.web.handler.sockjs.BridgeOptions;
 import io.vertx.ext.web.handler.sockjs.SockJSHandler;
@@ -21,9 +18,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import static demo.gos.common.Commons.STADIUM_HOST;
-import static demo.gos.common.Commons.STADIUM_PORT;
 
 public class UI extends AbstractVerticle {
 
@@ -84,24 +78,24 @@ public class UI extends AbstractVerticle {
       }).collect(Collectors.toList());
       msg.reply(new JsonArray(objects));
     });
-    eb.consumer("centerBall", msg -> {
-      HttpRequest<Buffer> request = WebClient.create(vertx)
-          .get(STADIUM_PORT, STADIUM_HOST, "/centerBall");
-      request.send(ar -> {
-        if (!ar.succeeded()) {
-          ar.cause().printStackTrace();
-        }
-      });
-    });
-    eb.consumer("randomBall", msg -> {
-      HttpRequest<Buffer> request = WebClient.create(vertx)
-          .get(STADIUM_PORT, STADIUM_HOST, "/randomBall");
-      request.send(ar -> {
-        if (!ar.succeeded()) {
-          ar.cause().printStackTrace();
-        }
-      });
-    });
+//    eb.consumer("centerBall", msg -> {
+//      HttpRequest<Buffer> request = WebClient.create(vertx)
+//          .get(STADIUM_PORT, STADIUM_HOST, "/centerBall");
+//      request.send(ar -> {
+//        if (!ar.succeeded()) {
+//          ar.cause().printStackTrace();
+//        }
+//      });
+//    });
+//    eb.consumer("randomBall", msg -> {
+//      HttpRequest<Buffer> request = WebClient.create(vertx)
+//          .get(STADIUM_PORT, STADIUM_HOST, "/randomBall");
+//      request.send(ar -> {
+//        if (!ar.succeeded()) {
+//          ar.cause().printStackTrace();
+//        }
+//      });
+//    });
 
     // Objects timeout
     vertx.setPeriodic(5000, loopId -> {

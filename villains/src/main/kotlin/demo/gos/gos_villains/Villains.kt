@@ -3,11 +3,15 @@ package demo.gos.gos_villains
 import demo.gos.common.Commons
 import demo.gos.common.Point
 import demo.gos.common.Rectangle
+import demo.gos.common.Segment
 import io.vertx.core.AbstractVerticle
 import io.vertx.core.Future
+import io.vertx.core.json.JsonObject
 import io.vertx.ext.web.client.WebClient
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.security.SecureRandom
+import kotlin.concurrent.thread
 import kotlin.coroutines.resume
 
 const val DELTA_MS: Long = 300
@@ -16,6 +20,10 @@ val WAVES_SIZE = Commons.getIntEnv("WAVES_SIZE", 5)
 val WAVES_DELAY = Commons.getDoubleEnv("WAVES_DELAY", 10.0)
 val SPAWN_CONTINUOUSLY = Commons.getStringEnv("SPAWN_CONTINUOUSLY", "false") == "true"
 val DETERMINIST = Commons.getStringEnv("DETERMINIST", "true") == "true"
+val SPEED = Commons.getDoubleEnv("SPEED", 60.0)
+// Accuracy [0, 1]
+val ACCURACY = Commons.getDoubleEnv("ACCURACY", 0.7)
+val MIN_SPEED = ACCURACY * SPEED
 
 enum class State {
   DEAD, ALIVE
@@ -30,25 +38,32 @@ val DEFAULT_BATTLEFIELD = BattlefieldInfo(Rectangle(0.0, 0.0, 50.0, 50.0))
 class Villains : AbstractVerticle() {
   private val villains = (1..CROWD_SIZE).map { Villain("VILLAIN-$it", Point.ZERO, State.ALIVE, null) }
   private lateinit var client: WebClient
-  lateinit var battlefieldInfo: BattlefieldInfo
+  private lateinit var battlefieldInfo: BattlefieldInfo
+  private val rnd = SecureRandom()
 
   override fun start(startFuture: Future<Void>) {
     client = WebClient.create(vertx)
 
-    runBlocking {
-      battlefieldInfo = checkBattlefield()
+    thread {
+      runBlocking {
+        battlefieldInfo = checkBattlefield()
 
-      // Check regularly about battlefield dimensions
-      vertx.setPeriodic(5000) {
-        runBlocking {
-          battlefieldInfo = checkBattlefield()
+        // Check regularly about battlefield dimensions
+        vertx.setPeriodic(5000) {
+          thread {
+            runBlocking {
+              battlefieldInfo = checkBattlefield()
+            }
+          }
         }
-      }
 
-      // Start game loop
-      vertx.setPeriodic(DELTA_MS) {
-        runBlocking {
-          update(DELTA_MS.toDouble() / 1000.0)
+        // Start game loop
+        vertx.setPeriodic(DELTA_MS) {
+          thread {
+            runBlocking {
+              update(DELTA_MS.toDouble() / 1000.0)
+            }
+          }
         }
       }
     }
@@ -85,9 +100,11 @@ class Villains : AbstractVerticle() {
     }
 
   private suspend fun update(delta: Double) {
-    villains.forEach {
-      it.target = checkTarget(it)
-
+    villains.forEach {v ->
+      v.target = checkTarget(v)
+      val dest = v.target?.pos ?: Point(1000.0, 1000.0)
+      walkToDestination(delta, v, dest)
+      display(v)
     }
   }
 
@@ -141,25 +158,46 @@ class Villains : AbstractVerticle() {
       }
     }
 
-//  private suspend fun walkRandom(delta: Double, villain: Villain) {
-//    if (currentDestination == null || new Segment(pos, currentDestination).size() < 10) {
-//      currentDestination = randomDestination();
-//    }
-//    walkToDestination(spanContext, delta);
-//  }
-//
-//  private suspend fun walkToDestination(delta: Double, villain: Villain) {
-//    if (currentDestination != null) {
-//      // Speed and angle are modified by accuracy
-//      Segment segToDest = new Segment(pos, currentDestination);
-//      // maxSpeed avoids stepping to high when close to destination
-//      double maxSpeed = Math.min(segToDest.size() / delta, SPEED);
-//      // minSpeed must be kept <= maxSpeed
-//      double minSpeed = Math.min(maxSpeed, MIN_SPEED);
-//      double speed = delta * (minSpeed + rnd.nextDouble() * (maxSpeed - minSpeed));
-//      Point relativeMove = randomishSegmentNormalized(segToDest).mult(speed);
-//      pos = pos.add(relativeMove);
-//      display(spanContext);
-//    }
-//  }
+  private fun walkToDestination(delta: Double, v: Villain, dest: Point) {
+    // Speed and angle are modified by accuracy
+    val segToDest = Segment(v.pos, dest)
+    // maxSpeed avoids stepping too high when close to destination
+    val maxSpeed = Math.min(segToDest.size() / delta, SPEED)
+    // minSpeed must be kept <= maxSpeed
+    val minSpeed = Math.min(maxSpeed, MIN_SPEED)
+    val speed = if (DETERMINIST) {
+      delta * (minSpeed + (maxSpeed - minSpeed) / 2)
+    } else {
+      delta * (minSpeed + rnd.nextDouble() * (maxSpeed - minSpeed))
+    }
+    val relativeMove = if (DETERMINIST) {
+      segToDest.derivate().normalize().mult(speed)
+    } else {
+      randomishSegmentNormalized(segToDest).mult(speed)
+    }
+    v.pos = v.pos.add(relativeMove)
+  }
+
+  private fun randomishSegmentNormalized(segToDest: Segment): Point {
+    var angle = rnd.nextDouble() * (1.0 - ACCURACY) * Math.PI
+    if (rnd.nextInt(2) == 0) {
+      angle *= -1
+    }
+    return segToDest.derivate().normalize().rotate(angle)
+  }
+
+  private fun display(v: Villain) {
+    val json = JsonObject()
+      .put("id", v.id)
+      .put("style", "position: absolute; background-color: #101030; transition: top " + DELTA_MS + "ms, left " + DELTA_MS + "ms; height: 30px; width: 30px; border-radius: 50%; z-index: 8;")
+      .put("text", "")
+      .put("x", v.pos.x() - 15)
+      .put("y", v.pos.y() - 15)
+
+    client.post(Commons.UI_PORT, Commons.UI_HOST, "/display").sendJson(json) { ar ->
+      if (!ar.succeeded()) {
+        ar.cause().printStackTrace()
+      }
+    }
+  }
 }

@@ -26,6 +26,7 @@ hs_err_pid*
 ui/src/main/resources/webroot/node_modules
 
 **/target/*
+**/.vertx/*
 
 # IntelliJ
 .idea
