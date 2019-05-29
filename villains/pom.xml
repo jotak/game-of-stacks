@@ -54,6 +54,11 @@
       <artifactId>vertx-lang-kotlin</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.jetbrains.kotlinx</groupId>
+      <artifactId>kotlinx-coroutines-core</artifactId>
+      <version>1.2.1</version>
+    </dependency>
+    <dependency>
       <groupId>demo.gos</groupId>
       <artifactId>gos-common</artifactId>
       <version>0.0.1</version>
