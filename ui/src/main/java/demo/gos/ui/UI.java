@@ -10,6 +10,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.bridge.PermittedOptions;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.ext.web.handler.sockjs.BridgeOptions;
 import io.vertx.ext.web.handler.sockjs.SockJSHandler;
@@ -31,7 +32,7 @@ public class UI extends AbstractVerticle {
   }
 
   @Override
-  public void start() throws Exception {
+  public void start() {
     HttpServerOptions serverOptions = new HttpServerOptions().setPort(Commons.UI_PORT);
 
     Router router = Router.router(vertx);
@@ -41,8 +42,8 @@ public class UI extends AbstractVerticle {
         .addOutboundPermitted(new PermittedOptions().setAddress("displayGameObject"))
         .addOutboundPermitted(new PermittedOptions().setAddress("removeGameObject"))
         .addInboundPermitted(new PermittedOptions().setAddress("init-session"))
-        .addInboundPermitted(new PermittedOptions().setAddress("centerBall"))
-        .addInboundPermitted(new PermittedOptions().setAddress("randomBall"));
+        .addInboundPermitted(new PermittedOptions().setAddress("start"))
+        .addInboundPermitted(new PermittedOptions().setAddress("stop"));
 
     // Create the event bus bridge and add it to the router.
     SockJSHandler sockJSHandler = SockJSHandler.create(vertx);
@@ -54,6 +55,7 @@ public class UI extends AbstractVerticle {
     // TODO: replace http API with eventbus messages
     // Listen to objects creation
     router.post("/display").handler(this::displayGameObject);
+    router.post("/displayMore").handler(this::displayGameObjects);
 
     // Create a router endpoint for the static content.
     router.route().handler(StaticHandler.create());
@@ -78,24 +80,22 @@ public class UI extends AbstractVerticle {
       }).collect(Collectors.toList());
       msg.reply(new JsonArray(objects));
     });
-//    eb.consumer("centerBall", msg -> {
-//      HttpRequest<Buffer> request = WebClient.create(vertx)
-//          .get(STADIUM_PORT, STADIUM_HOST, "/centerBall");
-//      request.send(ar -> {
-//        if (!ar.succeeded()) {
-//          ar.cause().printStackTrace();
-//        }
-//      });
-//    });
-//    eb.consumer("randomBall", msg -> {
-//      HttpRequest<Buffer> request = WebClient.create(vertx)
-//          .get(STADIUM_PORT, STADIUM_HOST, "/randomBall");
-//      request.send(ar -> {
-//        if (!ar.succeeded()) {
-//          ar.cause().printStackTrace();
-//        }
-//      });
-//    });
+    eb.consumer("start", msg -> WebClient.create(vertx)
+      .get(Commons.VILLAINS_PORT, Commons.VILLAINS_HOST, "/start")
+      .send(ar -> {
+        if (!ar.succeeded()) {
+          ar.cause().printStackTrace();
+        }
+      })
+    );
+    eb.consumer("stop", msg -> WebClient.create(vertx)
+      .get(Commons.VILLAINS_PORT, Commons.VILLAINS_HOST, "/stop")
+      .send(ar -> {
+        if (!ar.succeeded()) {
+          ar.cause().printStackTrace();
+        }
+      })
+    );
 
     // Objects timeout
     vertx.setPeriodic(5000, loopId -> {
@@ -121,6 +121,24 @@ public class UI extends AbstractVerticle {
           vertx.eventBus().publish("displayGameObject", json);
         }
         return out;
+      });
+    });
+  }
+
+  private void displayGameObjects(RoutingContext ctx) {
+    ctx.request().bodyHandler(buf -> {
+      JsonArray arr = buf.toJsonArray();
+      ctx.response().end();
+      arr.forEach(o -> {
+        JsonObject json = (JsonObject)o;
+        gameObjects.compute(json.getString("id"), (key, go) -> {
+          GameObject out = (go == null) ? new GameObject() : go;
+          boolean changed = out.mergeWithJson(json);
+          if (changed) {
+            vertx.eventBus().publish("displayGameObject", json);
+          }
+          return out;
+        });
       });
     });
   }

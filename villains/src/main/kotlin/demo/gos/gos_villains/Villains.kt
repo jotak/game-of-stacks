@@ -2,10 +2,10 @@ package demo.gos.gos_villains
 
 import demo.gos.common.Commons
 import demo.gos.common.Point
-import demo.gos.common.Rectangle
 import demo.gos.common.Segment
 import io.vertx.core.AbstractVerticle
 import io.vertx.core.Future
+import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
 import io.vertx.ext.web.client.WebClient
 import kotlinx.coroutines.runBlocking
@@ -16,53 +16,40 @@ import kotlin.coroutines.resume
 
 const val DELTA_MS: Long = 300
 val CROWD_SIZE = Commons.getIntEnv("CROWD_SIZE", 20)
-val WAVES_SIZE = Commons.getIntEnv("WAVES_SIZE", 5)
-val WAVES_DELAY = Commons.getDoubleEnv("WAVES_DELAY", 10.0)
-val SPAWN_CONTINUOUSLY = Commons.getStringEnv("SPAWN_CONTINUOUSLY", "false") == "true"
+val WAVES_SIZE = Commons.getIntEnv("WAVES_SIZE", 10)
+val WAVES_DELAY = Commons.getDoubleEnv("WAVES_DELAY", 6.0)
 val DETERMINIST = Commons.getStringEnv("DETERMINIST", "false") == "true"
-val SPEED = Commons.getDoubleEnv("SPEED", 60.0)
+val SPEED = Commons.getDoubleEnv("SPEED", 35.0)
 // Accuracy [0, 1]
 val ACCURACY = Commons.getDoubleEnv("ACCURACY", 0.7)
 val MIN_SPEED = ACCURACY * SPEED
 
 enum class State {
-  DEAD, ALIVE
+  DEAD, ALIVE, UNSEEN
 }
 
 data class Target(val id: String, var pos: Point)
 data class Villain(val id: String, var pos: Point, var state: State, var target: Target?)
-data class BattlefieldInfo(val spawnArea: Rectangle)
-
-val DEFAULT_BATTLEFIELD = BattlefieldInfo(Rectangle(0.0, 0.0, 50.0, 50.0))
 
 class Villains : AbstractVerticle() {
-  private val villains = (1..CROWD_SIZE).map { Villain("VILLAIN-$it", Point.ZERO, State.ALIVE, null) }
+  private var villains = mutableListOf<Villain>()
   private lateinit var client: WebClient
-  private lateinit var battlefieldInfo: BattlefieldInfo
   private val rnd = SecureRandom()
+  private var running = false
+  private var waveTimer = WAVES_DELAY
 
   override fun start(startFuture: Future<Void>) {
     client = WebClient.create(vertx)
 
     thread {
       runBlocking {
-        battlefieldInfo = checkBattlefield()
-
-        // Check regularly about battlefield dimensions
-        vertx.setPeriodic(5000) {
-          thread {
-            runBlocking {
-              battlefieldInfo = checkBattlefield()
-              println("Battlefield dimensions: $battlefieldInfo")
-            }
-          }
-        }
-
         // Start game loop
         vertx.setPeriodic(DELTA_MS) {
           thread {
             runBlocking {
-              update(DELTA_MS.toDouble() / 1000.0)
+              if (running) {
+                update(DELTA_MS.toDouble() / 1000.0)
+              }
             }
           }
         }
@@ -72,9 +59,19 @@ class Villains : AbstractVerticle() {
     vertx
       .createHttpServer()
       .requestHandler { req ->
-        req.response()
-          .putHeader("content-type", "text/plain")
-          .end("List of villains: ${villains.joinToString(", ") { it.id }}")
+        when {
+          req.path() == "/start" -> {
+            initVillains()
+            running = true
+          }
+          req.path() == "/stop" -> running = false
+          else -> {
+            println("Received request on path ${req.path()}")
+            req.response()
+              .putHeader("content-type", "text/plain")
+              .end("List of villains: ${villains.joinToString(", ") { it.id }}")
+          }
+        }
       }
       .listen(8888) { http ->
         if (http.succeeded()) {
@@ -86,38 +83,56 @@ class Villains : AbstractVerticle() {
       }
   }
 
-  private suspend fun checkBattlefield(): BattlefieldInfo =
-    suspendCancellableCoroutine { cont ->
-      client.get(Commons.BATTLEFIELD_PORT, Commons.BATTLEFIELD_HOST, "/villains/area").send { ar ->
-        if (!ar.succeeded()) {
-          ar.cause().printStackTrace()
-          cont.resume(DEFAULT_BATTLEFIELD)
-        } else {
-          val response = ar.result()
-          val map = response.bodyAsJsonObject().map
-          cont.resume(BattlefieldInfo(Rectangle.fromMap(map)))
-        }
+  private fun allAlive() = villains.filter { it.state != State.DEAD }
+
+  private fun initVillains() {
+    villains.clear()
+    createVillains(CROWD_SIZE)
+  }
+
+  private fun createVillains(size: Int) {
+    val spaceAroundEach = 60
+    val idOffset = villains.size
+    val newVillains = (0 until size).map {
+      var x = (-100 - spaceAroundEach * (it / 10)).toDouble()
+      var y = (spaceAroundEach * (it % 10)).toDouble()
+      if (!DETERMINIST) {
+        x += spaceAroundEach * 2 * (rnd.nextDouble() - 0.5)
+        y += spaceAroundEach * 2 * (rnd.nextDouble() - 0.5)
+      }
+      Villain("VILLAIN-${it + idOffset}", Point(x, y), State.ALIVE, null)
+    }
+    villains.addAll(newVillains)
+  }
+
+  private suspend fun update(delta: Double) {
+    if (WAVES_SIZE > 0) {
+      waveTimer -= delta
+      if (waveTimer <= 0) {
+        waveTimer = WAVES_DELAY
+        createVillains(WAVES_SIZE)
       }
     }
 
-  private suspend fun update(delta: Double) {
     checkTargets()
-    villains.forEach {v ->
+    allAlive().forEach {v ->
       val dest = v.target?.pos ?: Point(1000.0, 1000.0)
       walkToDestination(delta, v, dest)
-      display(v)
     }
+    updateStates()
+
+    villains.forEach { display(it) }
   }
 
   private suspend fun checkTargets() {
-    val ids = villains.mapNotNull { it.target?.id }
-    val countMissing = villains.count { it.target == null }
+    val ids = allAlive().mapNotNull { it.target?.id }
+    val countMissing = allAlive().count { it.target == null }
 
     val updatedTargets = if (ids.isEmpty()) emptyMap() else updateTargets(ids)
     val newTargets = if (countMissing == 0) emptyList() else findTargets(countMissing)
     var missCounter = 0
 
-    villains.forEach {
+    allAlive().forEach {
       val id = it.target?.id
       if (id != null) {
         it.target = updatedTargets[id]
@@ -169,6 +184,32 @@ class Villains : AbstractVerticle() {
       }
     }
 
+  private fun updateStates() {
+    val toUpdate = allAlive()
+    client.post(Commons.BATTLEFIELD_PORT, Commons.BATTLEFIELD_HOST, "/elements").sendJson(
+      JsonArray(toUpdate.map {
+        JsonObject().put("id", it.id).put("x", it.pos.x()).put("y", it.pos.y()).put("type", "VILLAIN")
+      })
+    ) { ar ->
+      if (!ar.succeeded()) {
+        ar.cause().printStackTrace()
+        toUpdate.forEach { it.state = State.UNSEEN }
+      } else if (ar.result().statusCode() != 200) {
+        toUpdate.forEach { it.state = State.UNSEEN }
+      } else {
+        val response = ar.result()
+        val json = response.bodyAsJsonObject()
+        toUpdate.forEach {
+          it.state = when {
+            json.getString(it.id) == "DEAD" -> State.DEAD
+            json.getString(it.id) == "ALIVE" -> State.ALIVE
+            else -> State.UNSEEN
+          }
+        }
+      }
+    }
+  }
+
   private fun walkToDestination(delta: Double, v: Villain, dest: Point) {
     // Speed and angle are modified by accuracy
     val segToDest = Segment(v.pos, dest)
@@ -198,9 +239,14 @@ class Villains : AbstractVerticle() {
   }
 
   private fun display(v: Villain) {
+    val color = when {
+      v.state == State.ALIVE -> "#802020"
+      v.state == State.DEAD -> "#101030"
+      else -> "#505060"
+    }
     val json = JsonObject()
       .put("id", v.id)
-      .put("style", "position: absolute; background-color: #101030; transition: top " + DELTA_MS + "ms, left " + DELTA_MS + "ms; height: 30px; width: 30px; border-radius: 50%; z-index: 8;")
+      .put("style", "position: absolute; background-color: $color; transition: top ${DELTA_MS}ms, left ${DELTA_MS}ms; height: 30px; width: 30px; border-radius: 50%; z-index: 8;")
       .put("text", "")
       .put("x", v.pos.x() - 15)
       .put("y", v.pos.y() - 15)
