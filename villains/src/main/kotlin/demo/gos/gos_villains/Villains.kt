@@ -19,7 +19,7 @@ val CROWD_SIZE = Commons.getIntEnv("CROWD_SIZE", 20)
 val WAVES_SIZE = Commons.getIntEnv("WAVES_SIZE", 5)
 val WAVES_DELAY = Commons.getDoubleEnv("WAVES_DELAY", 10.0)
 val SPAWN_CONTINUOUSLY = Commons.getStringEnv("SPAWN_CONTINUOUSLY", "false") == "true"
-val DETERMINIST = Commons.getStringEnv("DETERMINIST", "true") == "true"
+val DETERMINIST = Commons.getStringEnv("DETERMINIST", "false") == "true"
 val SPEED = Commons.getDoubleEnv("SPEED", 60.0)
 // Accuracy [0, 1]
 val ACCURACY = Commons.getDoubleEnv("ACCURACY", 0.7)
@@ -53,6 +53,7 @@ class Villains : AbstractVerticle() {
           thread {
             runBlocking {
               battlefieldInfo = checkBattlefield()
+              println("Battlefield dimensions: $battlefieldInfo")
             }
           }
         }
@@ -100,60 +101,70 @@ class Villains : AbstractVerticle() {
     }
 
   private suspend fun update(delta: Double) {
+    checkTargets()
     villains.forEach {v ->
-      v.target = checkTarget(v)
       val dest = v.target?.pos ?: Point(1000.0, 1000.0)
       walkToDestination(delta, v, dest)
       display(v)
     }
   }
 
-  private suspend fun checkTarget(villain: Villain): Target? {
-    val id = villain.target?.id
-    return if (id == null) {
-      findTarget()
-    } else {
-      updateTarget(id)
+  private suspend fun checkTargets() {
+    val ids = villains.mapNotNull { it.target?.id }
+    val countMissing = villains.count { it.target == null }
+
+    val updatedTargets = if (ids.isEmpty()) emptyMap() else updateTargets(ids)
+    val newTargets = if (countMissing == 0) emptyList() else findTargets(countMissing)
+    var missCounter = 0
+
+    villains.forEach {
+      val id = it.target?.id
+      if (id != null) {
+        it.target = updatedTargets[id]
+      } else {
+        val at = missCounter++
+        if (at < newTargets.size) {
+          it.target = newTargets[at]
+        }
+      }
     }
   }
 
-  private suspend fun findTarget(): Target? =
+  private suspend fun findTargets(count: Int): List<Target> =
     suspendCancellableCoroutine { cont ->
-      client.get(Commons.BATTLEFIELD_PORT, Commons.BATTLEFIELD_HOST, "/heroes/target").send { ar ->
+      client.get(Commons.BATTLEFIELD_PORT, Commons.BATTLEFIELD_HOST, "/pick/$count/heroes").send { ar ->
         if (!ar.succeeded()) {
           ar.cause().printStackTrace()
-          cont.resume(null)
+          cont.resume(emptyList())
         } else {
           val response = ar.result()
-          val json = response.bodyAsJsonObject()
-          val id = json.getString("id")
-          val x = json.getDouble("x")
-          val y = json.getDouble("y")
-          if (id != null && x != null && y != null) {
-            cont.resume(Target(id, Point(x, y)))
-          } else {
-            cont.resume(null)
+          val jsonArr = response.bodyAsJsonArray()
+          val targets = jsonArr.mapNotNull {
+            if (it is JsonObject) {
+              Target(it.getString("id"), Point(it.getDouble("x"), it.getDouble("y")))
+            } else null
           }
+          cont.resume(targets)
         }
       }
     }
 
-  private suspend fun updateTarget(id: String): Target? =
+  private suspend fun updateTargets(ids: List<String>): Map<String, Target> =
     suspendCancellableCoroutine { cont ->
-      client.get(Commons.BATTLEFIELD_PORT, Commons.BATTLEFIELD_HOST, "/heroes/target/$id").send { ar ->
+      client.get(Commons.BATTLEFIELD_PORT, Commons.BATTLEFIELD_HOST, "/elements")
+            .addQueryParam("ids", ids.joinToString(",")).send { ar ->
         if (!ar.succeeded()) {
           ar.cause().printStackTrace()
-          cont.resume(null)
+          cont.resume(emptyMap())
         } else {
           val response = ar.result()
-          val json = response.bodyAsJsonObject()
-          val x = json.getDouble("x")
-          val y = json.getDouble("y")
-          if (x != null && y != null) {
-            cont.resume(Target(id, Point(x, y)))
-          } else {
-            cont.resume(null)
-          }
+          val jsonArr = response.bodyAsJsonArray()
+          val targets = jsonArr.mapNotNull {
+            if (it is JsonObject) {
+              Target(it.getString("id"), Point(it.getDouble("x"), it.getDouble("y")))
+            } else null
+          }.associateBy({it.id}, {it})
+          cont.resume(targets)
         }
       }
     }

@@ -24,6 +24,7 @@ hs_err_pid*
 
 # node_modules
 ui/src/main/resources/webroot/node_modules
+ui/src/main/resources/webroot/package-lock.json
 
 **/target/*
 **/.vertx/*
@@ -33,3 +34,4 @@ ui/src/main/resources/webroot/node_modules
 *.ipr
 *.iml
 *.iws
+

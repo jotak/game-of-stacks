@@ -8,6 +8,6 @@ import io.vertx.core.Vertx
 
 
 fun main() {
-  val vertx = Vertx.vertx()
-  vertx.deployVerticle(Villains())
+  Vertx.vertx().deployVerticle(MockedBattlefield())
+  Vertx.vertx().deployVerticle(Villains())
 }
