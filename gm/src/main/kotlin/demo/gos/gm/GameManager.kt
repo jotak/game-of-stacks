@@ -10,7 +10,7 @@ class GameManager {
         val ELEMENTS = listOf(
                 Element("whitewalker1", ElementType.VILLAIN, 0.0, 0.0, ElementStatus.ALIVE),
                 Element("whitewalker2", ElementType.VILLAIN, 0.0, 0.0, ElementStatus.ALIVE),
-                Element("aria", ElementType.HERO, 0.0, 0.0, ElementStatus.ALIVE)
+                Element("aria", ElementType.HERO, 500.0, 400.0, ElementStatus.ALIVE)
         )
     }
 
@@ -19,9 +19,9 @@ class GameManager {
     @GET
     @Path("/elements")
     @Produces(MediaType.APPLICATION_JSON)
-    fun listElements(@QueryParam("ids") ids: Set<String>?, @QueryParam("type") type: ElementType?): Collection<Element> {
-        check(ids == null || type == null) { "Those filters don't make sense together." }
-        if (ids === null && type === null) {
+    fun listElements(@QueryParam("ids") ids: Set<String>, @QueryParam("type") type: ElementType?): Collection<Element> {
+        check(ids.isEmpty() || type == null) { "Those filters don't make sense together." }
+        if (ids.isEmpty() && type === null) {
             return elementsMap.values
         }
         if (type != null) {

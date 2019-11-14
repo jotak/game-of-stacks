@@ -11,6 +11,7 @@ import io.vertx.ext.web.client.WebClient
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.security.SecureRandom
+import java.util.*
 import kotlin.concurrent.thread
 import kotlin.coroutines.resume
 
@@ -23,16 +24,29 @@ val SPEED = Commons.getDoubleEnv("SPEED", 35.0)
 // Accuracy [0, 1]
 val ACCURACY = Commons.getDoubleEnv("ACCURACY", 0.7)
 val MIN_SPEED = ACCURACY * SPEED
+const val TYPE_VILLAIN = "VILLAIN"
+const val TYPE_HERO = "HERO"
 
 enum class State {
-  DEAD, ALIVE, UNSEEN
+  DEAD, ALIVE
 }
 
 data class Target(val id: String, var pos: Point)
-data class Villain(val id: String, var pos: Point, var state: State, var target: Target?)
+fun targetFromJson(json: JsonObject): Target {
+  return Target(json.getString("id"), Point(json.getDouble("x"), json.getDouble("y")))
+}
+
+data class Villain(val id: String, var pos: Point, var status: State, var target: Target?) {
+  fun toJson(): JsonObject {
+    return JsonObject().put("id", id).put("x", pos.x()).put("y", pos.y()).put("type", TYPE_VILLAIN).put("status", status)
+  }
+}
+fun villainFromJson(json: JsonObject): Villain {
+  return Villain(json.getString("id"), Point(json.getDouble("x"), json.getDouble("y")), State.valueOf(json.getString("status")), null)
+}
 
 class Villains : AbstractVerticle() {
-  private var villains = mutableListOf<Villain>()
+  // private var villains = mutableListOf<Villain>()
   private lateinit var client: WebClient
   private val rnd = SecureRandom()
   private var running = false
@@ -61,7 +75,7 @@ class Villains : AbstractVerticle() {
       .requestHandler { req ->
         when {
           req.path() == "/start" -> {
-            initVillains()
+            createVillains(CROWD_SIZE)
             running = true
           }
           req.path() == "/stop" -> running = false
@@ -69,7 +83,7 @@ class Villains : AbstractVerticle() {
             println("Received request on path ${req.path()}")
             req.response()
               .putHeader("content-type", "text/plain")
-              .end("List of villains: ${villains.joinToString(", ") { it.id }}")
+              .end("")
           }
         }
       }
@@ -83,16 +97,8 @@ class Villains : AbstractVerticle() {
       }
   }
 
-  private fun allAlive() = villains.filter { it.state != State.DEAD }
-
-  private fun initVillains() {
-    villains.clear()
-    createVillains(CROWD_SIZE)
-  }
-
   private fun createVillains(size: Int) {
     val spaceAroundEach = 60
-    val idOffset = villains.size
     val newVillains = (0 until size).map {
       var x = (-100 - spaceAroundEach * (it / 10)).toDouble()
       var y = (spaceAroundEach * (it % 10)).toDouble()
@@ -100,9 +106,16 @@ class Villains : AbstractVerticle() {
         x += spaceAroundEach * 2 * (rnd.nextDouble() - 0.5)
         y += spaceAroundEach * 2 * (rnd.nextDouble() - 0.5)
       }
-      Villain("VILLAIN-${it + idOffset}", Point(x, y), State.ALIVE, null)
+      Villain("V-${UUID.randomUUID()}", Point(x, y), State.ALIVE, null)
     }
-    villains.addAll(newVillains)
+
+    client.post(Commons.BATTLEFIELD_PORT, Commons.BATTLEFIELD_HOST, "/gm/element/batch").sendJson(
+      JsonArray(newVillains.map { it.toJson() })
+    ) { ar ->
+      if (!ar.succeeded()) {
+        ar.cause().printStackTrace()
+      }
+    }
   }
 
   private suspend fun update(delta: Double) {
@@ -114,98 +127,76 @@ class Villains : AbstractVerticle() {
       }
     }
 
-    checkTargets()
-    allAlive().forEach {v ->
+    val all = retrieveAllVillains()
+    val alive = all.filter { it.status != State.DEAD }
+    checkTargets(alive)
+    alive.forEach {v ->
       val dest = v.target?.pos ?: Point(1000.0, 1000.0)
       walkToDestination(delta, v, dest)
     }
-    updateStates()
+    updateStates(alive)
 
-    villains.forEach { display(it) }
+    all.forEach { display(it) }
   }
 
-  private suspend fun checkTargets() {
-    val ids = allAlive().mapNotNull { it.target?.id }
-    val countMissing = allAlive().count { it.target == null }
+  private suspend fun retrieveAllVillains(): List<Villain> =
+    suspendCancellableCoroutine { cont ->
+      client.get(Commons.BATTLEFIELD_PORT, Commons.BATTLEFIELD_HOST, "/gm/elements")
+        .addQueryParam("type", TYPE_VILLAIN).send { ar ->
+          if (!ar.succeeded()) {
+            ar.cause().printStackTrace()
+            cont.resume(emptyList())
+          } else {
+            val response = ar.result()
+            val jsonArr = response.bodyAsJsonArray()
+            val list = jsonArr.mapNotNull {
+              if (it is JsonObject) {
+                villainFromJson(it)
+              } else null
+            }
+            cont.resume(list)
+          }
+        }
+    }
 
-    val updatedTargets = if (ids.isEmpty()) emptyMap() else updateTargets(ids)
-    val newTargets = if (countMissing == 0) emptyList() else findTargets(countMissing)
-    var missCounter = 0
-
-    allAlive().forEach {
+  private suspend fun checkTargets(alive: List<Villain>) {
+    val targets = retrieveAllTargets()
+    alive.forEach {
       val id = it.target?.id
       if (id != null) {
-        it.target = updatedTargets[id]
-      } else {
-        val at = missCounter++
-        if (at < newTargets.size) {
-          it.target = newTargets[at]
-        }
+        it.target = targets[id]
+      } else if (targets.isNotEmpty()) {
+        it.target = targets.values.random()
       }
     }
   }
 
-  private suspend fun findTargets(count: Int): List<Target> =
+  private suspend fun retrieveAllTargets(): Map<String, Target> =
     suspendCancellableCoroutine { cont ->
-      client.get(Commons.BATTLEFIELD_PORT, Commons.BATTLEFIELD_HOST, "/pick/$count/heroes").send { ar ->
-        if (!ar.succeeded()) {
-          ar.cause().printStackTrace()
-          cont.resume(emptyList())
-        } else {
-          val response = ar.result()
-          val jsonArr = response.bodyAsJsonArray()
-          val targets = jsonArr.mapNotNull {
-            if (it is JsonObject) {
-              Target(it.getString("id"), Point(it.getDouble("x"), it.getDouble("y")))
-            } else null
+      client.get(Commons.BATTLEFIELD_PORT, Commons.BATTLEFIELD_HOST, "/gm/elements")
+        .addQueryParam("type", TYPE_HERO).send { ar ->
+          if (!ar.succeeded()) {
+            ar.cause().printStackTrace()
+            cont.resume(emptyMap())
+          } else {
+            val response = ar.result()
+            val jsonArr = response.bodyAsJsonArray()
+            val list = jsonArr.mapNotNull {
+              if (it is JsonObject) {
+                targetFromJson(it)
+              } else null
+            }.associateBy({it.id}, {it})
+            cont.resume(list)
           }
-          cont.resume(targets)
         }
-      }
     }
 
-  private suspend fun updateTargets(ids: List<String>): Map<String, Target> =
-    suspendCancellableCoroutine { cont ->
-      client.get(Commons.BATTLEFIELD_PORT, Commons.BATTLEFIELD_HOST, "/elements")
-            .addQueryParam("ids", ids.joinToString(",")).send { ar ->
-        if (!ar.succeeded()) {
-          ar.cause().printStackTrace()
-          cont.resume(emptyMap())
-        } else {
-          val response = ar.result()
-          val jsonArr = response.bodyAsJsonArray()
-          val targets = jsonArr.mapNotNull {
-            if (it is JsonObject) {
-              Target(it.getString("id"), Point(it.getDouble("x"), it.getDouble("y")))
-            } else null
-          }.associateBy({it.id}, {it})
-          cont.resume(targets)
-        }
-      }
-    }
-
-  private fun updateStates() {
-    val toUpdate = allAlive()
-    client.post(Commons.BATTLEFIELD_PORT, Commons.BATTLEFIELD_HOST, "/elements").sendJson(
-      JsonArray(toUpdate.map {
-        JsonObject().put("id", it.id).put("x", it.pos.x()).put("y", it.pos.y()).put("type", "VILLAIN")
-      })
+  private fun updateStates(alive: List<Villain>) {
+    client.patch(Commons.BATTLEFIELD_PORT, Commons.BATTLEFIELD_HOST, "/gm/element/batch").sendJson(
+      JsonArray(alive.map {it.toJson()})
     ) { ar ->
       if (!ar.succeeded()) {
         ar.cause().printStackTrace()
-        toUpdate.forEach { it.state = State.UNSEEN }
-      } else if (ar.result().statusCode() != 200) {
-        toUpdate.forEach { it.state = State.UNSEEN }
-      } else {
-        val response = ar.result()
-        val json = response.bodyAsJsonObject()
-        toUpdate.forEach {
-          it.state = when {
-            json.getString(it.id) == "DEAD" -> State.DEAD
-            json.getString(it.id) == "ALIVE" -> State.ALIVE
-            else -> State.UNSEEN
-          }
-        }
       }
     }
   }
@@ -240,8 +231,8 @@ class Villains : AbstractVerticle() {
 
   private fun display(v: Villain) {
     val color = when {
-      v.state == State.ALIVE -> "#802020"
-      v.state == State.DEAD -> "#101030"
+      v.status == State.ALIVE -> "#802020"
+      v.status == State.DEAD -> "#101030"
       else -> "#505060"
     }
     val json = JsonObject()

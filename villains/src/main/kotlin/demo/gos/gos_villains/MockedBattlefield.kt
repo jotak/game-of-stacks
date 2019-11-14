@@ -9,25 +9,41 @@ import io.vertx.core.json.JsonObject
 import io.vertx.ext.web.Router
 
 class MockedBattlefield : AbstractVerticle() {
-  private val nedStark = JsonObject().put("id", "Ned Stark").put("x", 500.0).put("y", 400.0)
+  private val heroes = JsonArray().add(JsonObject().put("id", "Ned Stark").put("x", 500.0).put("y", 400.0))
+  private val villains = JsonArray()
 
   override fun start(startFuture: Future<Void>) {
     val serverOptions = HttpServerOptions().setPort(Commons.BATTLEFIELD_PORT)
     val router = Router.router(vertx)
-    router.get("/pick/:count/heroes").handler {
-      val arr = arrayOfNulls<JsonObject>(it.request().getParam("count").toInt()).map { nedStark }
-      it.response().end(JsonArray(arr).toString())
+    router.get("/gm/elements").handler {
+      if (it.request().getParam("type") == "VILLAIN") {
+        it.response().end(villains.toString())
+      } else {
+        it.response().end(heroes.toString())
+      }
     }
-    router.get("/elements").handler {
-      val ids = it.request().getParam("ids").split(',')
-      val arr = arrayOfNulls<JsonObject>(ids.size).map { nedStark }
-      it.response().end(JsonArray(arr).toString())
-    }
-    router.post("/elements").handler { ctx ->
+    router.post("/gm/element/batch").handler { ctx ->
       ctx.request().bodyHandler { buf ->
-        val updated = buf.toJsonArray().mapNotNull { if (it is JsonObject) it.getString("id") else null }
-          .associateBy({ it }, { if (Math.random() < 0.01) "DEAD" else "ALIVE" })
-        ctx.response().end(JsonObject(updated).toString())
+        villains.addAll(buf.toJsonArray())
+        ctx.response().end("")
+      }
+    }
+    router.patch("/gm/element/batch").handler { ctx ->
+      ctx.request().bodyHandler { buf ->
+        val arr = buf.toJsonArray()
+        arr.forEach {
+          if (it is JsonObject) {
+            it.put("status", if (Math.random() < 0.01) "DEAD" else "ALIVE")
+            villains.forEach { it2 ->
+              if (it2 is JsonObject && it2.getString("id") == it.getString("id")) {
+                it2.put("x", it.getValue("x"))
+                it2.put("y", it.getValue("y"))
+                it2.put("status", it.getValue("status"))
+              }
+            }
+          }
+        }
+        ctx.response().end(arr.toString())
       }
     }
 
