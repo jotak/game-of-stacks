@@ -11,9 +11,9 @@ import java.util.EnumSet;
 public final class Commons {
 
   private static final int METRICS_ENABLED = Commons.getIntEnv("METRICS_ENABLED", 0);
-  public static final int UI_PORT = getIntEnv("GOS_UI_PORT", 8080);
+  public static final int UI_PORT = getIntEnv("GOS_UI_PORT", 8081);
   public static final String UI_HOST = getStringEnv("GOS_UI_HOST", "localhost");
-  public static final int BATTLEFIELD_PORT = getIntEnv("GOS_BATTLEFIELD_PORT", 8081);
+  public static final int BATTLEFIELD_PORT = getIntEnv("GOS_BATTLEFIELD_PORT", 8080);
   public static final String BATTLEFIELD_HOST = getStringEnv("GOS_BATTLEFIELD_HOST", "localhost");
   public static final int VILLAINS_PORT = getIntEnv("GOS_VILLAINS_PORT", 8888);
   public static final String VILLAINS_HOST = getStringEnv("GOS_VILLAINS_HOST", "localhost");
