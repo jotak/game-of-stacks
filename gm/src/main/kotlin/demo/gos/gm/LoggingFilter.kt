@@ -24,10 +24,12 @@ class LoggingFilter : ContainerRequestFilter {
 
     override fun filter(context: ContainerRequestContext) {
         LOG.finest { "Received ${context.method} on ${info.path}" }
-        LOG.finest { "${gameManager.getElementsByType(VILLAIN).size} villains left" }
-        gameManager.getElementsByType(HERO).forEach {
-            LOG.finest { "${it.id} (${it.x},${it.y}) is ${it.status}" }
-        }
+        val villains = gameManager.queryElements(VILLAIN)
+        LOG.finer { "${villains.size} villains left" }
+        LOG.finest { villains.joinToString("\n")  { "${it.id} (${it.x},${it.y}) is ${it.status}" } }
+        val heroes = gameManager.queryElements(HERO)
+        LOG.finer { "${heroes.size} heroes left" }
+        LOG.finest { heroes.joinToString("\n")  { "${it.id} (${it.x},${it.y}) is ${it.status}" } }
 
     }
 }

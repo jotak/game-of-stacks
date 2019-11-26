@@ -14,15 +14,17 @@ import java.security.SecureRandom
 import java.util.*
 import kotlin.concurrent.thread
 import kotlin.coroutines.resume
+import kotlin.math.abs
 
 const val DELTA_MS: Long = 300
-val CROWD_SIZE = Commons.getIntEnv("CROWD_SIZE", 20)
-val WAVES_SIZE = Commons.getIntEnv("WAVES_SIZE", 10)
-val WAVES_DELAY = Commons.getDoubleEnv("WAVES_DELAY", 6.0)
+val CROWD_SIZE = Commons.getIntEnv("CROWD_SIZE", 1)
+val WAVES_SIZE = Commons.getIntEnv("WAVES_SIZE", 1)
+val WAVES_DELAY = Commons.getDoubleEnv("WAVES_DELAY", 5.0)
 val DETERMINIST = Commons.getStringEnv("DETERMINIST", "false") == "true"
 val SPEED = Commons.getDoubleEnv("SPEED", 35.0)
 // Accuracy [0, 1]
 val ACCURACY = Commons.getDoubleEnv("ACCURACY", 0.7)
+val SHOT_RANGE = Commons.getDoubleEnv("SHOT_RANGE", 5.0)
 val MIN_SPEED = ACCURACY * SPEED
 const val TYPE_VILLAIN = "VILLAIN"
 const val TYPE_HERO = "HERO"
@@ -31,14 +33,24 @@ enum class State {
   DEAD, ALIVE
 }
 
-data class Target(val id: String, var pos: Point)
+data class Target(val id: String, var pos: Point, var status: State) {
+  fun toJson(): JsonObject {
+    return JsonObject().put("id", id).put("x", pos.x()).put("y", pos.y()).put("type", TYPE_HERO).put("status", status)
+  }
+}
 fun targetFromJson(json: JsonObject): Target {
-  return Target(json.getString("id"), Point(json.getDouble("x"), json.getDouble("y")))
+  return Target(json.getString("id"), Point(json.getDouble("x"), json.getDouble("y")),  State.valueOf(json.getString("status")))
 }
 
 data class Villain(val id: String, var pos: Point, var status: State, var target: Target?) {
   fun toJson(): JsonObject {
     return JsonObject().put("id", id).put("x", pos.x()).put("y", pos.y()).put("type", TYPE_VILLAIN).put("status", status)
+  }
+
+  fun isOnTarget(): Boolean {
+    val diff = target?.pos?.diff(pos)
+    // use a shot range
+    return diff != null && abs(diff.x()) <= SHOT_RANGE && abs(diff.y()) <= SHOT_RANGE
   }
 }
 fun villainFromJson(json: JsonObject): Villain {
@@ -142,7 +154,8 @@ class Villains : AbstractVerticle() {
   private suspend fun retrieveAllVillains(): List<Villain> =
     suspendCancellableCoroutine { cont ->
       client.get(Commons.BATTLEFIELD_PORT, Commons.BATTLEFIELD_HOST, "/gm/elements")
-        .addQueryParam("type", TYPE_VILLAIN).send { ar ->
+        .addQueryParam("type", TYPE_VILLAIN)
+        .send { ar ->
           if (!ar.succeeded()) {
             ar.cause().printStackTrace()
             cont.resume(emptyList())
@@ -174,7 +187,8 @@ class Villains : AbstractVerticle() {
   private suspend fun retrieveAllTargets(): Map<String, Target> =
     suspendCancellableCoroutine { cont ->
       client.get(Commons.BATTLEFIELD_PORT, Commons.BATTLEFIELD_HOST, "/gm/elements")
-        .addQueryParam("type", TYPE_HERO).send { ar ->
+        .addQueryParam("type", TYPE_HERO)
+        .addQueryParam("status", State.ALIVE.toString()).send { ar ->
           if (!ar.succeeded()) {
             ar.cause().printStackTrace()
             cont.resume(emptyMap())
@@ -192,9 +206,17 @@ class Villains : AbstractVerticle() {
     }
 
   private fun updateStates(alive: List<Villain>) {
-    client.patch(Commons.BATTLEFIELD_PORT, Commons.BATTLEFIELD_HOST, "/gm/element/batch").sendJson(
-      JsonArray(alive.map {it.toJson()})
-    ) { ar ->
+    val deadTargets = alive.filter { it.isOnTarget() }
+      .map {
+        // VILLAIN DIE TOO
+        it.target!!.status = State.DEAD
+        it.status = State.DEAD
+        it.target!!.toJson()
+      }
+    val patch = JsonArray(alive.map {it.toJson()})
+
+    patch.addAll(JsonArray(deadTargets))
+    client.patch(Commons.BATTLEFIELD_PORT, Commons.BATTLEFIELD_HOST, "/gm/element/batch").sendJson(patch) { ar ->
       if (!ar.succeeded()) {
         ar.cause().printStackTrace()
       }
