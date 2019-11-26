@@ -11,10 +11,9 @@ open class GameManagerTest {
     @Test
     fun testHelloEndpoint() {
         given()
-          .`when`().get("/gm")
+          .`when`().get("/gm/elements")
           .then()
              .statusCode(200)
-             .body(`is`("hello"))
     }
 
 }

@@ -1,3 +1,11 @@
 package demo.gos.gm
 
-data class ElementPatch(val id: String, val x: Double?, val y: Double?, val status: ElementStatus?)
+import javax.json.bind.annotation.JsonbCreator
+import javax.json.bind.annotation.JsonbProperty
+
+data class ElementPatch @JsonbCreator constructor(
+        @JsonbProperty("id") val id: String,
+        @JsonbProperty("x") val x: Double,
+        @JsonbProperty("y") val y: Double,
+        @JsonbProperty("status") val status: ElementStatus?
+)
