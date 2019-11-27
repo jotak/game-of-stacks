@@ -1,5 +1,8 @@
 package demo.gos.gm
 
+import demo.gos.gm.ElementStatus.DEAD
+import java.lang.IllegalStateException
+import java.util.concurrent.ConcurrentHashMap
 import javax.ws.rs.*
 import javax.ws.rs.core.MediaType
 import kotlin.streams.toList
@@ -16,13 +19,13 @@ class GameManager {
         )
     }
 
-    val elementsMap = ELEMENTS.associateBy { it.id }.toMutableMap()
+    val elementsMap = ConcurrentHashMap(ELEMENTS.associateBy { it.id }.toMutableMap())
 
     @GET
     @Path("/elements")
     @Produces(MediaType.APPLICATION_JSON)
     fun listElements(@QueryParam("ids") ids: Set<String>, @QueryParam("type") type: ElementType?, @QueryParam("status") status: ElementStatus?): Collection<Element> {
-        if (!ids.isEmpty()) {
+        if (ids.isNotEmpty()) {
             return elementsMap
                     .filterKeys { ids.contains(it) }
                     .values
@@ -32,35 +35,85 @@ class GameManager {
 
     @DELETE
     @Path("/elements")
-    fun removeElements(@QueryParam("ids") ids: Set<String>?) {
+    fun removeElements(@QueryParam("ids") ids: Set<String>? = null) {
         if (ids == null) {
             return elementsMap.clear()
         }
         ids.forEach { elementsMap.remove(it) }
     }
 
-    @PATCH
+    @GET
     @Path("/element/:id")
-    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    fun patchElement(@PathParam("id") id: String, x: Double?, y: Double?, status: ElementStatus?): Element {
-        return elementsMap.computeIfPresent(id) { elId: String, element: Element ->
-            Element(
-                    id = elId,
-                    x = x ?: element.x,
-                    y = y ?: element.y,
-                    status = status ?: element.status,
-                    type = element.type
-            )
-        }!!
+    fun getElement(@PathParam("id") id: String): Element? {
+        return elementsMap[id]
     }
 
     @PATCH
-    @Path("/element/batch")
+    @Path("/action")
     @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    fun patchElementBatch(patches: Collection<ElementPatch>): Collection<Element> {
-        return patches.map { patchElement(it.id, it.x, it.y, it.status) }
+    fun action(action: Action) {
+        when (action) {
+            is KillAction -> {
+                killAction(action)
+            }
+            is MoveAction -> {
+                moveAction(action)
+            }
+            else -> {
+                throw IllegalStateException("Invalid patch type")
+            }
+        }
+    }
+
+    fun moveAction(action: MoveAction) {
+        if (elementsMap[action.id] == null) {
+            // element does not exist
+            return
+        }
+        if (elementsMap[action.id]?.status == DEAD) {
+            // element is dead
+            return
+        }
+        elementsMap.computeIfPresent(action.id)
+        { elId: String, element: Element ->
+            element.copy(x = action.x, y = action.y)
+        }
+    }
+
+    fun killAction(action: KillAction) {
+        if (elementsMap[action.targetId] == null) {
+            // target does not exist
+            return
+        }
+        if (elementsMap[action.killerId] == null) {
+            // killer does not exist
+            return
+        }
+        if (elementsMap[action.targetId]?.status == DEAD) {
+            // target is already dead
+            return
+        }
+        if (elementsMap[action.killerId]?.status == DEAD) {
+            // killer is already dead
+            return
+        }
+        if (action.kamikaze) {
+            elementsMap.computeIfPresent(action.killerId) { elId: String, element: Element ->
+                return@computeIfPresent element.copy(status = DEAD)
+            }
+        }
+        elementsMap.computeIfPresent(action.targetId) { elId: String, element: Element ->
+            element.copy(status = DEAD)
+        }
+    }
+
+
+    @PATCH
+    @Path("/action/batch")
+    @Consumes(MediaType.APPLICATION_JSON)
+    fun actionBacth(actions: Collection<Action>) {
+        actions.map { action(it) }
     }
 
     @POST
@@ -82,7 +135,7 @@ class GameManager {
 
     fun queryElements(type: ElementType? = null, status: ElementStatus? = null): List<Element> {
         return elementsMap.values.stream()
-                .filter { status == null || it.status == status}
+                .filter { status == null || it.status == status }
                 .filter { type == null || it.type == type }
                 .toList()
 

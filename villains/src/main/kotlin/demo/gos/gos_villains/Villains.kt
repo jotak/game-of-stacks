@@ -24,7 +24,7 @@ val DETERMINIST = Commons.getStringEnv("DETERMINIST", "false") == "true"
 val SPEED = Commons.getDoubleEnv("SPEED", 35.0)
 // Accuracy [0, 1]
 val ACCURACY = Commons.getDoubleEnv("ACCURACY", 0.7)
-val SHOT_RANGE = Commons.getDoubleEnv("SHOT_RANGE", 5.0)
+val SHOT_RANGE = Commons.getDoubleEnv("SHOT_RANGE", 20.0)
 val MIN_SPEED = ACCURACY * SPEED
 const val TYPE_VILLAIN = "VILLAIN"
 const val TYPE_HERO = "HERO"
@@ -38,8 +38,9 @@ data class Target(val id: String, var pos: Point, var status: State) {
     return JsonObject().put("id", id).put("x", pos.x()).put("y", pos.y()).put("type", TYPE_HERO).put("status", status)
   }
 }
+
 fun targetFromJson(json: JsonObject): Target {
-  return Target(json.getString("id"), Point(json.getDouble("x"), json.getDouble("y")),  State.valueOf(json.getString("status")))
+  return Target(json.getString("id"), Point(json.getDouble("x"), json.getDouble("y")), State.valueOf(json.getString("status")))
 }
 
 data class Villain(val id: String, var pos: Point, var status: State, var target: Target?) {
@@ -53,6 +54,15 @@ data class Villain(val id: String, var pos: Point, var status: State, var target
     return diff != null && abs(diff.x()) <= SHOT_RANGE && abs(diff.y()) <= SHOT_RANGE
   }
 }
+
+fun moveActionAsJson(id: String, pos: Point): JsonObject {
+  return JsonObject().put("id", id).put("x", pos.x()).put("y", pos.y())
+}
+
+fun kamikazeKillActionAsJson(killerId: String, targetId: String): JsonObject {
+  return JsonObject().put("killerId", killerId).put("targetId", targetId).put("kamikaze", true)
+}
+
 fun villainFromJson(json: JsonObject): Villain {
   return Villain(json.getString("id"), Point(json.getDouble("x"), json.getDouble("y")), State.valueOf(json.getString("status")), null)
 }
@@ -142,7 +152,7 @@ class Villains : AbstractVerticle() {
     val all = retrieveAllVillains()
     val alive = all.filter { it.status != State.DEAD }
     checkTargets(alive)
-    alive.forEach {v ->
+    alive.forEach { v ->
       val dest = v.target?.pos ?: Point(1000.0, 1000.0)
       walkToDestination(delta, v, dest)
     }
@@ -199,7 +209,7 @@ class Villains : AbstractVerticle() {
               if (it is JsonObject) {
                 targetFromJson(it)
               } else null
-            }.associateBy({it.id}, {it})
+            }.associateBy({ it.id }, { it })
             cont.resume(list)
           }
         }
@@ -207,16 +217,10 @@ class Villains : AbstractVerticle() {
 
   private fun updateStates(alive: List<Villain>) {
     val deadTargets = alive.filter { it.isOnTarget() }
-      .map {
-        // VILLAIN DIE TOO
-        it.target!!.status = State.DEAD
-        it.status = State.DEAD
-        it.target!!.toJson()
-      }
-    val patch = JsonArray(alive.map {it.toJson()})
-
+      .map { kamikazeKillActionAsJson(it.id, it.target!!.id) }
+    val patch = JsonArray(alive.map { moveActionAsJson(it.id, it.pos) })
     patch.addAll(JsonArray(deadTargets))
-    client.patch(Commons.BATTLEFIELD_PORT, Commons.BATTLEFIELD_HOST, "/gm/element/batch").sendJson(patch) { ar ->
+    client.patch(Commons.BATTLEFIELD_PORT, Commons.BATTLEFIELD_HOST, "/gm/action/batch").sendJson(patch) { ar ->
       if (!ar.succeeded()) {
         ar.cause().printStackTrace()
       }

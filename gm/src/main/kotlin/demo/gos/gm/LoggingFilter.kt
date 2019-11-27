@@ -1,5 +1,6 @@
 package demo.gos.gm
 
+import demo.gos.gm.ElementStatus.ALIVE
 import demo.gos.gm.ElementType.*
 import java.util.logging.Logger
 import javax.inject.Inject
@@ -25,10 +26,10 @@ class LoggingFilter : ContainerRequestFilter {
     override fun filter(context: ContainerRequestContext) {
         LOG.finest { "Received ${context.method} on ${info.path}" }
         val villains = gameManager.queryElements(VILLAIN)
-        LOG.finer { "${villains.size} villains left" }
+        LOG.finer { "${villains.filter { it.status == ALIVE }.size} villains left" }
         LOG.finest { villains.joinToString("\n")  { "${it.id} (${it.x},${it.y}) is ${it.status}" } }
         val heroes = gameManager.queryElements(HERO)
-        LOG.finer { "${heroes.size} heroes left" }
+        LOG.finer { "${heroes.filter { it.status == ALIVE }.size} heroes left" }
         LOG.finest { heroes.joinToString("\n")  { "${it.id} (${it.x},${it.y}) is ${it.status}" } }
 
     }

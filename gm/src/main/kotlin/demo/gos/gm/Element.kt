@@ -1,12 +1,13 @@
 package demo.gos.gm
 
-import javax.json.bind.annotation.JsonbCreator
-import javax.json.bind.annotation.JsonbProperty
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonProperty
 
-data class Element @JsonbCreator constructor(
-        @JsonbProperty("id") val id: String,
-        @JsonbProperty("type") val type: ElementType,
-        @JsonbProperty("x") val x: Double,
-        @JsonbProperty("y") val y: Double,
-        @JsonbProperty("status") val status: ElementStatus?
+
+data class Element @JsonCreator constructor(
+        @JsonProperty("id") val id: String,
+        @JsonProperty("type") val type: ElementType,
+        @JsonProperty("x") val x: Double,
+        @JsonProperty("y") val y: Double,
+        @JsonProperty("status") val status: ElementStatus?
 )
