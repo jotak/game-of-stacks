@@ -51,7 +51,7 @@ data class Villain(val id: String, var pos: Point, var status: State, var target
   fun isOnTarget(): Boolean {
     val diff = target?.pos?.diff(pos)
     // use a shot range
-    return diff != null && abs(diff.x()) <= SHOT_RANGE && abs(diff.y()) <= SHOT_RANGE
+    return diff != null && diff.size() <= SHOT_RANGE
   }
 }
 
