@@ -1,3 +1,13 @@
 package demo.gos.gm
 
-data class Element(val id: String, val type: ElementType, val x: Double, val y: Double, val status: ElementStatus?)
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonProperty
+
+
+data class Element @JsonCreator constructor(
+        @JsonProperty("id") val id: String,
+        @JsonProperty("type") val type: ElementType,
+        @JsonProperty("x") val x: Double,
+        @JsonProperty("y") val y: Double,
+        @JsonProperty("status") val status: ElementStatus?
+)
