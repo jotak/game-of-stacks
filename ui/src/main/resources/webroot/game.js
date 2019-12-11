@@ -47,9 +47,9 @@ eb.onreconnect = function() {
 };
 
 function start() {
-  eb.send("start", "");
+  eb.publish("start", "");
 }
 
 function stop() {
-  eb.send("stop", "");
+  eb.publish("stop", "");
 }

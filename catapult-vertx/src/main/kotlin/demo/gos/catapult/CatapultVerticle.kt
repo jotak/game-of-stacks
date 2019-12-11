@@ -128,7 +128,7 @@ class Catapult(private val vertx: Vertx, private val id: String, private val x: 
   }
 
   private suspend fun update(delta: Double) {
-    println("Updating catapult")
+    //println("Updating catapult")
     display()
   }
 

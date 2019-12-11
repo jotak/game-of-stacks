@@ -15,6 +15,7 @@ public final class Commons {
   public static final String UI_HOST = getStringEnv("GOS_UI_HOST", "localhost");
   public static final int BATTLEFIELD_PORT = getIntEnv("GOS_BATTLEFIELD_PORT", 8080);
   public static final String BATTLEFIELD_HOST = getStringEnv("GOS_BATTLEFIELD_HOST", "localhost");
+  public static final String BATTLEFIELD_URI = "http://" + BATTLEFIELD_HOST + ":" + BATTLEFIELD_PORT;
   public static final int VILLAINS_PORT = getIntEnv("GOS_VILLAINS_PORT", 8888);
   public static final String VILLAINS_HOST = getStringEnv("GOS_VILLAINS_HOST", "localhost");
   public static final int HEROES_PORT = getIntEnv("GOS_HEROES_PORT", 8082);
