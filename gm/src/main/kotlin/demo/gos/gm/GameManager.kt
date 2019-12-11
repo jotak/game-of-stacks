@@ -1,7 +1,9 @@
 package demo.gos.gm
 
-import demo.gos.common.Areas
-import demo.gos.gm.ElementStatus.DEAD
+import demo.gos.common.*
+import demo.gos.common.ElementStatus.DEAD
+import demo.gos.common.ElementType.HERO
+import demo.gos.common.ElementType.WEAPON
 import java.lang.IllegalStateException
 import java.util.concurrent.ConcurrentHashMap
 import javax.ws.rs.*
@@ -13,10 +15,10 @@ class GameManager {
 
     companion object {
         val ELEMENTS = listOf(
-                Element("Aria Stark", ElementType.HERO, 500.0, 400.0, ElementStatus.ALIVE),
-                Element("Ned Stark", ElementType.HERO, 500.0, 200.0, ElementStatus.ALIVE),
-                Element("John Snow", ElementType.HERO, 500.0, 100.0, ElementStatus.ALIVE),
-                Element("Daenerys Targaryen", ElementType.HERO, 400.0, 400.0, ElementStatus.ALIVE)
+                Element("Aria Stark", HERO, 500.0, 400.0, ElementStatus.ALIVE),
+                Element("Ned Stark", HERO, 500.0, 200.0, ElementStatus.ALIVE),
+                Element("John Snow", HERO, 500.0, 100.0, ElementStatus.ALIVE),
+                Element("Daenerys Targaryen", HERO, 400.0, 400.0, ElementStatus.ALIVE)
         )
         val AREAS = listOf(
                 Area(Areas.SPAWN_VILLAINS, -100.0, 0.0, 100.0, 600.0),
@@ -26,6 +28,7 @@ class GameManager {
     }
 
     val elementsMap = ConcurrentHashMap(ELEMENTS.associateBy { it.id }.toMutableMap())
+    val weaponsOwnerMap = ConcurrentHashMap<String, String>()
     val areasMap = AREAS.associateBy { it.name }
 
     @GET
@@ -130,6 +133,21 @@ class GameManager {
     fun createElement(element: Element): Element {
         check(elementsMap.putIfAbsent(element.id, element) == null) { "This element already exists ${element.id}" }
         return element
+    }
+
+    @POST
+    @Path("/weapon/{id}/arm/{hero}")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun lockWeapon(@PathParam("id") id: String, @PathParam("hero") hero: String): Boolean {
+        checkNotNull(elementsMap[id])
+        checkNotNull(elementsMap[hero])
+        check(elementsMap[id]!!.type != WEAPON) { "This element $id is not a weapon" }
+        check(elementsMap[id]!!.status != DEAD) { "This element $id is dead" }
+        check(elementsMap[hero]!!.type != HERO) { "This element $hero is not a hero" }
+        check(elementsMap[hero]!!.status != DEAD) { "This element $hero is dead" }
+        return weaponsOwnerMap.computeIfAbsent(id) {
+            return@computeIfAbsent hero
+        } == hero
     }
 
     @POST

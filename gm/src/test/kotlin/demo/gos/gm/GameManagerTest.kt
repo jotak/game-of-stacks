@@ -1,8 +1,12 @@
 package demo.gos.gm
 
-import demo.gos.gm.ElementStatus.ALIVE
-import demo.gos.gm.ElementStatus.DEAD
-import demo.gos.gm.ElementType.VILLAIN
+import demo.gos.common.Element
+import demo.gos.common.ElementType
+import demo.gos.common.KillAction
+import demo.gos.common.MoveAction
+import demo.gos.common.ElementStatus.ALIVE
+import demo.gos.common.ElementStatus.DEAD
+import demo.gos.common.ElementType.VILLAIN
 import io.quarkus.test.junit.QuarkusTest
 import io.restassured.RestAssured.given
 import io.restassured.http.ContentType
@@ -77,7 +81,7 @@ open class GameManagerTest {
         gm.elementsMap.putAll(ELEMENTS.associateBy { it.id }.toMutableMap())
         val ww1 = Element("WW1", VILLAIN, 0.0, 0.0, DEAD)
         gm.createElement(ww1)
-        val patch = KillAction(killerId =  ww1.id, targetId =  "Aria Stark", kamikaze = true)
+        val patch = KillAction(killerId = ww1.id, targetId = "Aria Stark", kamikaze = true)
         given().body(patch)
                 .contentType(ContentType.JSON)
                 .`when`()

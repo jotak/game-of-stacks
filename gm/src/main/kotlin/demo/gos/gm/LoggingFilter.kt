@@ -1,7 +1,7 @@
 package demo.gos.gm
 
-import demo.gos.gm.ElementStatus.ALIVE
-import demo.gos.gm.ElementType.*
+import demo.gos.common.ElementStatus.ALIVE
+import demo.gos.common.ElementType.*
 import java.util.logging.Logger
 import javax.inject.Inject
 import javax.ws.rs.container.ContainerRequestContext
