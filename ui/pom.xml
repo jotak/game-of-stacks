@@ -9,7 +9,7 @@
   <version>0.0.1</version>
 
   <properties>
-    <vertx.version>3.6.0</vertx.version>
+    <vertx.version>3.8.4</vertx.version>
     <maven-shade-plugin.version>2.4.3</maven-shade-plugin.version>
     <main.verticle>demo.gos.ui.UIVerticle</main.verticle>
   </properties>
@@ -39,6 +39,11 @@
       <groupId>demo.gos</groupId>
       <artifactId>gos-common</artifactId>
       <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-hazelcast</artifactId>
+      <version>${vertx.version}</version>
     </dependency>
   </dependencies>
 

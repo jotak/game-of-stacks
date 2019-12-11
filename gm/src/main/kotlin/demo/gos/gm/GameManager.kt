@@ -14,12 +14,6 @@ import kotlin.streams.toList
 class GameManager {
 
     companion object {
-        val ELEMENTS = listOf(
-                Element("Aria Stark", HERO, 500.0, 400.0, ElementStatus.ALIVE),
-                Element("Ned Stark", HERO, 500.0, 200.0, ElementStatus.ALIVE),
-                Element("John Snow", HERO, 500.0, 100.0, ElementStatus.ALIVE),
-                Element("Daenerys Targaryen", HERO, 400.0, 400.0, ElementStatus.ALIVE)
-        )
         val AREAS = listOf(
                 Area(Areas.SPAWN_VILLAINS, -100.0, 0.0, 100.0, 600.0),
                 Area(Areas.SPAWN_HEROES, 400.0, 100.0, 200.0, 400.0),
@@ -27,7 +21,7 @@ class GameManager {
         )
     }
 
-    val elementsMap = ConcurrentHashMap(ELEMENTS.associateBy { it.id }.toMutableMap())
+    val elementsMap = ConcurrentHashMap<String, Element>()
     val weaponsOwnerMap = ConcurrentHashMap<String, String>()
     val areasMap = AREAS.associateBy { it.name }
 
@@ -122,7 +116,7 @@ class GameManager {
     @PATCH
     @Path("/action/batch")
     @Consumes(MediaType.APPLICATION_JSON)
-    fun actionBacth(actions: Collection<Action>) {
+    fun actionBatch(actions: Collection<Action>) {
         actions.map { action(it) }
     }
 

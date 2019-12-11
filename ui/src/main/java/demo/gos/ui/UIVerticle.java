@@ -10,7 +10,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.bridge.PermittedOptions;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.ext.web.handler.sockjs.BridgeOptions;
 import io.vertx.ext.web.handler.sockjs.SockJSHandler;
@@ -28,7 +27,10 @@ public class UIVerticle extends AbstractVerticle {
   }
 
   public static void main(String[] args) {
-    Vertx.vertx(Commons.vertxOptions()).deployVerticle(new UIVerticle());
+    Vertx.clusteredVertx(Commons.vertxOptions().setClustered(true), ar -> {
+      System.out.println("prout");
+      ar.result().deployVerticle(new UIVerticle());
+    });
   }
 
   @Override
@@ -80,22 +82,7 @@ public class UIVerticle extends AbstractVerticle {
       }).collect(Collectors.toList());
       msg.reply(new JsonArray(objects));
     });
-    eb.consumer("start", msg -> WebClient.create(vertx)
-      .get(Commons.VILLAINS_PORT, Commons.VILLAINS_HOST, "/start")
-      .send(ar -> {
-        if (!ar.succeeded()) {
-          ar.cause().printStackTrace();
-        }
-      })
-    );
-    eb.consumer("stop", msg -> WebClient.create(vertx)
-      .get(Commons.VILLAINS_PORT, Commons.VILLAINS_HOST, "/stop")
-      .send(ar -> {
-        if (!ar.succeeded()) {
-          ar.cause().printStackTrace();
-        }
-      })
-    );
+
 
     // Objects timeout
     vertx.setPeriodic(5000, loopId -> {
