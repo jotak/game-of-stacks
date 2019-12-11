@@ -20,7 +20,7 @@
 
     <vertx.version>3.7.1</vertx.version>
 
-    <main.verticle>demo.gos.catapult.Catapult</main.verticle>
+    <main.verticle>demo.gos.catapult.CatapultVerticle</main.verticle>
   </properties>
 
   <dependencyManagement>
@@ -118,7 +118,7 @@
               </transformers>
               <artifactSet>
               </artifactSet>
-              <outputFile>${project.build.directory}/${project.artifactId}-${project.version}-fat.jar
+              <outputFile>${project.build.directory}/${project.artifactId}-${project.version}-runner.jar
               </outputFile>
             </configuration>
           </execution>

@@ -66,7 +66,7 @@ fun villainFromJson(json: JsonObject): Villain {
   return Villain(json.getString("id"), Point(json.getDouble("x"), json.getDouble("y")), State.valueOf(json.getString("status")), null)
 }
 
-class Villains : AbstractVerticle() {
+open class VillainsVerticle : AbstractVerticle() {
   // private var villains = mutableListOf<Villain>()
   private lateinit var client: WebClient
   private val rnd = SecureRandom()

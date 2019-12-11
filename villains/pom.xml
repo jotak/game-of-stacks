@@ -21,7 +21,7 @@
     <vertx.version>3.7.1</vertx.version>
     <junit-jupiter.version>5.4.0</junit-jupiter.version>
 
-    <main.verticle>demo.gos.villains.Villains</main.verticle>
+    <main.verticle>demo.gos.villains.VillainsVerticle</main.verticle>
   </properties>
 
   <dependencyManagement>
@@ -134,7 +134,7 @@
               </transformers>
               <artifactSet>
               </artifactSet>
-              <outputFile>${project.build.directory}/${project.artifactId}-${project.version}-fat.jar
+              <outputFile>${project.build.directory}/${project.artifactId}-${project.version}-runner.jar
               </outputFile>
             </configuration>
           </execution>

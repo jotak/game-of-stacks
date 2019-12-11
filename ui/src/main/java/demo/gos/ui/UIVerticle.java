@@ -20,15 +20,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class UI extends AbstractVerticle {
+public class UIVerticle extends AbstractVerticle {
 
   private final Map<String, GameObject> gameObjects = new HashMap<>();
 
-  private UI() {
+  public UIVerticle() {
   }
 
   public static void main(String[] args) {
-    Vertx.vertx(Commons.vertxOptions()).deployVerticle(new UI());
+    Vertx.vertx(Commons.vertxOptions()).deployVerticle(new UIVerticle());
   }
 
   @Override

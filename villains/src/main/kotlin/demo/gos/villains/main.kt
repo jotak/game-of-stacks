@@ -9,5 +9,5 @@ import io.vertx.core.Vertx
 
 fun main() {
   //Vertx.vertx().deployVerticle(MockedBattlefield())
-  Vertx.vertx().deployVerticle(Villains())
+  Vertx.vertx().deployVerticle(VillainsVerticle())
 }

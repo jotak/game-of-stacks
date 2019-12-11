@@ -40,7 +40,7 @@ data class Area(val x: Double, val y: Double, val width: Double, val height: Dou
   }
 }
 
-class CatapultVerticle : AbstractVerticle() {
+open class CatapultVerticle : AbstractVerticle() {
   private lateinit var cata: Catapult
 
   override fun start(startFuture: Future<Void>) {
