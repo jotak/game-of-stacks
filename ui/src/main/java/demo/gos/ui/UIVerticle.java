@@ -27,10 +27,7 @@ public class UIVerticle extends AbstractVerticle {
   }
 
   public static void main(String[] args) {
-    Vertx.clusteredVertx(Commons.vertxOptions().setClustered(true), ar -> {
-      System.out.println("prout");
-      ar.result().deployVerticle(new UIVerticle());
-    });
+    Vertx.clusteredVertx(Commons.vertxOptions().setClustered(true), ar -> ar.result().deployVerticle(new UIVerticle()));
   }
 
   @Override

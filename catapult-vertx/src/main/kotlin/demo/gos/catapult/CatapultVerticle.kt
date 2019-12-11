@@ -5,6 +5,8 @@ import demo.gos.common.Commons
 import demo.gos.common.Point
 import io.vertx.core.*
 import io.vertx.core.json.JsonObject
+import io.vertx.core.logging.Logger
+import io.vertx.core.logging.LoggerFactory
 import io.vertx.ext.web.Router
 import io.vertx.ext.web.RoutingContext
 import io.vertx.ext.web.client.WebClient
@@ -18,6 +20,7 @@ import java.util.*
 import kotlin.math.atan
 import kotlin.math.tan
 
+val LOGGER: Logger = LoggerFactory.getLogger("Catapult-Vertx")
 const val PORT = 8889
 const val DELTA_MS: Long = 300
 //val DETERMINIST = Commons.getStringEnv("DETERMINIST", "false") == "true"
@@ -66,7 +69,7 @@ open class CatapultVerticle : AbstractVerticle() {
     vertx.createHttpServer().requestHandler(router).listen(PORT) { http ->
       if (http.succeeded()) {
         startFuture.complete()
-        println("HTTPS server started on port $PORT")
+        LOGGER.info("HTTPS server started on port $PORT")
       } else {
         startFuture.fail(http.cause())
       }
@@ -76,16 +79,16 @@ open class CatapultVerticle : AbstractVerticle() {
   }
 
   private suspend fun tryGetArea(id: String, handler: Handler<AsyncResult<Area>>) {
-    println("Trying to init Catapult against Game Manager...")
+    LOGGER.info("Pinging Game Manager & get spawn area...")
     WebClient.create(vertx).get(Commons.BATTLEFIELD_PORT, Commons.BATTLEFIELD_HOST, "/gm/areas/${Areas.SPAWN_WEAPONS}")
         .send { ar ->
       if (ar.succeeded()) {
         val code = ar.result().statusCode()
         if (code == 200) {
-          println("Done")
+          LOGGER.info("Done")
           handler.handle(ar.map { Area.fromJson(it.bodyAsJsonObject()) })
         } else {
-          println("Failed: $code")
+          LOGGER.error("Failed: $code")
           vertx.setTimer(1000) {
             GlobalScope.launch(vertx.dispatcher()) {
               tryGetArea(id, handler)
@@ -93,7 +96,7 @@ open class CatapultVerticle : AbstractVerticle() {
           }
         }
       } else {
-        println("Failed")
+        LOGGER.error("Failed (retrying...)")
         vertx.setTimer(1000) {
           GlobalScope.launch(vertx.dispatcher()) {
             tryGetArea(id, handler)
@@ -105,19 +108,27 @@ open class CatapultVerticle : AbstractVerticle() {
 }
 
 class Catapult(private val vertx: Vertx, private val id: String, private val x: Double, private val y: Double) {
-  private var color = "brown"
+  private var gauge = 0.0
+  private var inError = false
 
   init {
     WebClient.create(vertx).post(Commons.BATTLEFIELD_PORT, Commons.BATTLEFIELD_HOST, "/gm/element").sendJson(
       JsonObject().put("id", id).put("type", "CATAPULT").put("x", x).put("y", y)
     ) { ar ->
       if (ar.succeeded()) {
-        println("Catapult registered on Game Manager")
+        LOGGER.info("Catapult registered on Game Manager")
       } else {
-        println("Failed to register catapult on Game Manager")
-        ar.cause()?.printStackTrace()
-        color = "red"
+        LOGGER.error("Failed to register catapult on Game Manager", ar.cause())
+        inError = true
       }
+    }
+
+    vertx.eventBus().consumer<Any>("start") {
+      LOGGER.info("Received start event")
+    }
+
+    vertx.eventBus().consumer<Any>("stop") {
+      LOGGER.info("Received stop event")
     }
 
     vertx.setPeriodic(DELTA_MS) {
@@ -128,7 +139,6 @@ class Catapult(private val vertx: Vertx, private val id: String, private val x: 
   }
 
   private suspend fun update(delta: Double) {
-    //println("Updating catapult")
     display()
   }
 
@@ -139,9 +149,16 @@ class Catapult(private val vertx: Vertx, private val id: String, private val x: 
       it.complete(tan(atan(tan(atan(d)))))
     }
     ctx.response().end(d.toString())
+    gauge += 0.01
+    if (gauge >= 1.0) {
+      // TODO: shoot
+      gauge = 0.0
+    }
   }
 
   private fun display() {
+    val red = (gauge * 255).toInt()
+    val color = if (inError) "red" else "rgb($red,128,128)"
     val json = JsonObject()
       .put("id", id)
       .put("style", "position: absolute; background-color: $color; height: 50px; width: 50px; z-index: 7;")
@@ -152,7 +169,7 @@ class Catapult(private val vertx: Vertx, private val id: String, private val x: 
     val client = WebClient.create(vertx)
     client.post(Commons.UI_PORT, Commons.UI_HOST, "/display").sendJson(json) { ar ->
       if (!ar.succeeded()) {
-        ar.cause().printStackTrace()
+        LOGGER.error("Display error", ar.cause())
       }
     }
   }

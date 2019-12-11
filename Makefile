@@ -21,7 +21,7 @@ start-villains:
 	java -jar ./villains/target/gos-villains-${VERSION}-runner.jar
 
 start-catapult-vertx:
-	java -jar ./catapult-vertx/target/gos-catapult-vertx-${VERSION}-runner.jar
+	java -jar ./catapult-vertx/target/gos-catapult-vertx-${VERSION}-runner.jar -cluster
 
 start-heroes:
 	java -jar ./heroes/target/gos-heroes-${VERSION}-runner.jar
