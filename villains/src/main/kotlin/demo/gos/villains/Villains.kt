@@ -1,4 +1,4 @@
-package demo.gos.gos_villains
+package demo.gos.villains
 
 import demo.gos.common.Commons
 import demo.gos.common.Point
@@ -14,7 +14,6 @@ import java.security.SecureRandom
 import java.util.*
 import kotlin.concurrent.thread
 import kotlin.coroutines.resume
-import kotlin.math.abs
 
 const val DELTA_MS: Long = 300
 val CROWD_SIZE = Commons.getIntEnv("CROWD_SIZE", 1)

@@ -1,5 +1,6 @@
 package demo.gos.gm
 
+import demo.gos.common.Areas
 import demo.gos.gm.ElementStatus.DEAD
 import java.lang.IllegalStateException
 import java.util.concurrent.ConcurrentHashMap
@@ -17,9 +18,15 @@ class GameManager {
                 Element("John Snow", ElementType.HERO, 500.0, 100.0, ElementStatus.ALIVE),
                 Element("Daenerys Targaryen", ElementType.HERO, 400.0, 400.0, ElementStatus.ALIVE)
         )
+        val AREAS = listOf(
+                Area(Areas.SPAWN_VILLAINS, -100.0, 0.0, 100.0, 600.0),
+                Area(Areas.SPAWN_HEROES, 400.0, 100.0, 200.0, 400.0),
+                Area(Areas.SPAWN_WEAPONS, 300.0, 200.0, 100.0, 200.0)
+        )
     }
 
     val elementsMap = ConcurrentHashMap(ELEMENTS.associateBy { it.id }.toMutableMap())
+    val areasMap = AREAS.associateBy { it.name }
 
     @GET
     @Path("/elements")
@@ -43,7 +50,7 @@ class GameManager {
     }
 
     @GET
-    @Path("/element/:id")
+    @Path("/element/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     fun getElement(@PathParam("id") id: String): Element? {
         return elementsMap[id]
@@ -139,5 +146,19 @@ class GameManager {
                 .filter { type == null || it.type == type }
                 .toList()
 
+    }
+
+    @GET
+    @Path("/areas")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun listAreas(): Collection<Area> {
+        return AREAS
+    }
+
+    @GET
+    @Path("/areas/{name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun getAreas(@PathParam("name") name: String): Area? {
+        return areasMap[name]
     }
 }

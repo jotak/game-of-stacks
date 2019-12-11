@@ -1,4 +1,4 @@
-package demo.gos.gos_villains
+package demo.gos.villains
 
 import io.vertx.core.Vertx
 
