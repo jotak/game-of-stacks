@@ -1,6 +1,6 @@
 VERSION := 0.0.1
 
-.PHONY: clean install test start-gm start-ui start-villains start-catapult-vertx
+.PHONY: clean install test start-gm start-ui start-villains start-catapult-vertx start-heroes
 
 clean:
 	mvn clean
@@ -22,3 +22,6 @@ start-villains:
 
 start-catapult-vertx:
 	java -jar ./catapult-vertx/target/gos-catapult-vertx-${VERSION}-runner.jar
+
+start-heroes:
+	java -jar ./heroes/target/gos-heroes-${VERSION}-runner.jar

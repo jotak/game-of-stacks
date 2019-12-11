@@ -15,6 +15,7 @@
     <module>villains</module>
     <module>gm</module>
     <module>catapult-vertx</module>
+    <module>heroes</module>
   </modules>
 
 </project>
