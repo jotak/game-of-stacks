@@ -11,6 +11,8 @@ import io.vertx.ext.web.Router
 import io.vertx.ext.web.RoutingContext
 import io.vertx.ext.web.client.WebClient
 import io.vertx.kotlin.core.executeBlockingAwait
+import io.vertx.kotlin.core.http.listenAwait
+import io.vertx.kotlin.coroutines.CoroutineVerticle
 import io.vertx.kotlin.coroutines.awaitResult
 import io.vertx.kotlin.coroutines.dispatcher
 import kotlinx.coroutines.GlobalScope
@@ -30,7 +32,7 @@ const val DELTA_MS: Long = 300
 //val SHOT_RANGE = Commons.getDoubleEnv("SHOT_RANGE", 20.0)
 //val MIN_SPEED = ACCURACY * SPEED
 
-val rnd = SecureRandom()
+val RND = SecureRandom()
 
 data class Area(val x: Double, val y: Double, val width: Double, val height: Double) {
   companion object {
@@ -39,25 +41,23 @@ data class Area(val x: Double, val y: Double, val width: Double, val height: Dou
     }
   }
   fun spawn(): Point {
-    return Point(x + rnd.nextDouble() * width, y + rnd.nextDouble() * height)
+    return Point(x + RND.nextDouble() * width, y + RND.nextDouble() * height)
   }
 }
 
-open class CatapultVerticle : AbstractVerticle() {
+class CatapultVerticle : CoroutineVerticle() {
   private lateinit var cata: Catapult
 
-  override fun start(startFuture: Future<Void>) {
-    GlobalScope.launch(vertx.dispatcher()) {
-      cata = initCatapult(startFuture)
-    }
+  override suspend fun start() {
+    cata = initCatapult()
   }
 
-  private suspend fun initCatapult(startFuture: Future<Void>): Catapult {
+  private suspend fun initCatapult(): Catapult {
     val id = "CATA-VX-" + UUID.randomUUID().toString()
 
     val area = awaitResult<Area> { h ->
       GlobalScope.launch(vertx.dispatcher()) {
-        tryGetArea(id, Handler { js-> h.handle(js) })
+        tryGetArea(Handler { js-> h.handle(js) })
       }
     }
     val pos = area.spawn()
@@ -66,19 +66,13 @@ open class CatapultVerticle : AbstractVerticle() {
     val router = Router.router(vertx)
     router.get("/load").handler { GlobalScope.launch(vertx.dispatcher()) { cata.load(it) } }
 
-    vertx.createHttpServer().requestHandler(router).listen(PORT) { http ->
-      if (http.succeeded()) {
-        startFuture.complete()
-        LOGGER.info("HTTPS server started on port $PORT")
-      } else {
-        startFuture.fail(http.cause())
-      }
-    }
+    vertx.createHttpServer().requestHandler(router).listenAwait(PORT)
+    LOGGER.info("HTTPS server started on port $PORT")
 
     return cata
   }
 
-  private suspend fun tryGetArea(id: String, handler: Handler<AsyncResult<Area>>) {
+  private fun tryGetArea(handler: Handler<AsyncResult<Area>>) {
     LOGGER.info("Pinging Game Manager & get spawn area...")
     WebClient.create(vertx).get(Commons.BATTLEFIELD_PORT, Commons.BATTLEFIELD_HOST, "/gm/areas/${Areas.SPAWN_WEAPONS}")
         .send { ar ->
@@ -91,7 +85,7 @@ open class CatapultVerticle : AbstractVerticle() {
           LOGGER.error("Failed: $code")
           vertx.setTimer(1000) {
             GlobalScope.launch(vertx.dispatcher()) {
-              tryGetArea(id, handler)
+              tryGetArea(handler)
             }
           }
         }
@@ -99,7 +93,7 @@ open class CatapultVerticle : AbstractVerticle() {
         LOGGER.error("Failed (retrying...)")
         vertx.setTimer(1000) {
           GlobalScope.launch(vertx.dispatcher()) {
-            tryGetArea(id, handler)
+            tryGetArea(handler)
           }
         }
       }
