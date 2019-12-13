@@ -1,9 +1,6 @@
 package demo.gos.villains
 
-import demo.gos.common.Areas
-import demo.gos.common.Commons
-import demo.gos.common.Point
-import demo.gos.common.Segment
+import demo.gos.common.*
 import io.vertx.core.Handler
 import io.vertx.core.Vertx
 import io.vertx.core.json.JsonArray
@@ -22,7 +19,7 @@ import kotlin.math.min
 
 val LOGGER: Logger = LoggerFactory.getLogger("Villains")
 const val PORT = 8888
-const val DELTA_MS: Long = 300
+const val DELTA_MS: Long = 200
 val WAVES_SIZE = Commons.getIntEnv("WAVES_SIZE", 10)
 val WAVES_DELAY = Commons.getDoubleEnv("WAVES_DELAY", 10.0)
 val SPEED = Commons.getDoubleEnv("SPEED", 35.0)
@@ -30,18 +27,12 @@ val SPEED = Commons.getDoubleEnv("SPEED", 35.0)
 val ACCURACY = Commons.getDoubleEnv("ACCURACY", 0.7)
 val SHOT_RANGE = Commons.getDoubleEnv("SHOT_RANGE", 20.0)
 val MIN_SPEED = ACCURACY * SPEED
-const val TYPE_VILLAIN = "VILLAIN"
-const val TYPE_HERO = "HERO"
 val RND = SecureRandom()
 
-enum class State {
-  DEAD, ALIVE
-}
-
-data class Target(val id: String, var pos: Point, var status: State) {
+data class Target(val id: String, var pos: Point, var status: ElementStatus) {
   companion object {
     fun fromJson(json: JsonObject): Target {
-      return Target(json.getString("id"), Point(json.getDouble("x"), json.getDouble("y")), State.valueOf(json.getString("status")))
+      return Target(json.getString("id"), Point(json.getDouble("x"), json.getDouble("y")), ElementStatus.valueOf(json.getString("status")))
     }
   }
 }
@@ -123,9 +114,12 @@ class Villains(private val vertx: Vertx) {
   }
 
   private fun createVillains(size: Int) {
+    if (villains.size > 200) {
+      return
+    }
     getArea(Handler { area->
       val newVillains = (0 until size).map {
-        Villain("V-${UUID.randomUUID()}", area.spawn(), State.ALIVE, null)
+        Villain("V-${UUID.randomUUID()}", area.spawn(), ElementStatus.ALIVE, null)
       }
       villains.addAll(newVillains)
       WebClient.create(vertx).post(Commons.BATTLEFIELD_PORT, Commons.BATTLEFIELD_HOST, "/gm/element/batch").sendJson(
@@ -147,7 +141,7 @@ class Villains(private val vertx: Vertx) {
       }
     }
 
-    val alive = villains.filter { it.status != State.DEAD }
+    val alive = villains.filter { it.status != ElementStatus.DEAD }
     val heroes = retrieveAllHeroes()
     alive.forEach { v ->
       val targetId = v.target?.id
@@ -166,8 +160,8 @@ class Villains(private val vertx: Vertx) {
 
   private suspend fun retrieveAllHeroes(): Map<String, Target> {
     val res = WebClient.create(vertx).get(Commons.BATTLEFIELD_PORT, Commons.BATTLEFIELD_HOST, "/gm/elements")
-        .addQueryParam("type", TYPE_HERO)
-        .addQueryParam("status", State.ALIVE.toString()).sendAwait()
+        .addQueryParam("type", ElementType.HERO.toString())
+        .addQueryParam("status", ElementStatus.ALIVE.toString()).sendAwait()
 
     val jsonArr = res.bodyAsJsonArray()
     return jsonArr.mapNotNull {
@@ -211,8 +205,8 @@ class Villains(private val vertx: Vertx) {
 
   private fun display(v: Villain) {
     val color = when (v.status) {
-        State.ALIVE -> "#802020"
-        State.DEAD -> "#101030"
+      ElementStatus.ALIVE -> "#802020"
+      ElementStatus.DEAD -> "#101030"
     }
     val json = JsonObject()
       .put("id", v.id)
@@ -223,7 +217,7 @@ class Villains(private val vertx: Vertx) {
 
     WebClient.create(vertx).post(Commons.UI_PORT, Commons.UI_HOST, "/display").sendJson(json) { ar ->
       if (!ar.succeeded()) {
-        ar.cause().printStackTrace()
+        LOGGER.error("Display error", ar.cause())
       }
     }
   }
