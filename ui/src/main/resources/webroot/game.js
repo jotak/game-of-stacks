@@ -46,10 +46,15 @@ eb.onreconnect = function() {
   $('#board').contents().remove();
 };
 
-function start() {
-  eb.publish("start", "");
+function play() {
+  eb.send("play", "");
 }
 
-function stop() {
-  eb.publish("stop", "");
+function pause() {
+  eb.send("pause", "");
 }
+
+function reset() {
+  eb.send("reset", "");
+}
+

@@ -15,13 +15,13 @@ start-gm:
 	java -jar ./gm/target/gos-gm-${VERSION}-runner.jar
 
 start-ui:
-	java -jar ./ui/target/gos-ui-${VERSION}-runner.jar -cluster
+	java -jar ./ui/target/gos-ui-${VERSION}-runner.jar
 
 start-villains:
 	java -jar ./villains/target/gos-villains-${VERSION}-runner.jar
 
 start-catapult-vertx:
-	java -jar ./catapult-vertx/target/gos-catapult-vertx-${VERSION}-runner.jar -cluster
+	java -jar ./catapult-vertx/target/gos-catapult-vertx-${VERSION}-runner.jar
 
 start-heroes:
 	java -jar ./heroes/target/gos-heroes-${VERSION}-runner.jar
