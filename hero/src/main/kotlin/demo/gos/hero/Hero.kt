@@ -1,15 +1,15 @@
-package demo.gos.heroes
+package demo.gos.hero
 
 import demo.gos.common.*
+import io.quarkus.runtime.StartupEvent
 import io.quarkus.scheduler.Scheduled
-import io.smallrye.reactive.messaging.annotations.Broadcast
 import io.smallrye.reactive.messaging.annotations.Channel
 import io.smallrye.reactive.messaging.annotations.Emitter
 import io.vertx.core.json.JsonObject
 import org.eclipse.microprofile.reactive.messaging.Incoming
-import org.eclipse.microprofile.reactive.messaging.Outgoing
 import java.util.concurrent.atomic.AtomicReference
 import java.util.logging.Logger
+import javax.enterprise.event.Observes
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -31,6 +31,10 @@ class Hero {
     @Inject
     @Channel("hero-making-noise")
     lateinit var emitter: Emitter<JsonObject>
+
+    fun onStart(@Observes e: StartupEvent){
+        LOG.info("${id} has joined the game")
+    }
 
 
     @Scheduled(every = "5s")
