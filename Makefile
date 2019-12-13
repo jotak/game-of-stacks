@@ -22,7 +22,7 @@ start-catapult-vertx:
 	java -jar ./catapult-vertx/target/gos-catapult-vertx-${VERSION}-runner.jar
 
 start-hero:
-	java -jar ./heroes/target/gos-heroes-${VERSION}-runner.jar
+	java -jar ./hero/target/gos-hero-${VERSION}-runner.jar
 
 start:
 	make -j5 start-gm start-ui start-villains start-catapult-vertx start-heroes

@@ -3,7 +3,7 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
   <groupId>demo.gos</groupId>
-  <artifactId>gos-heroes</artifactId>
+  <artifactId>gos-hero</artifactId>
   <version>0.0.1</version>
   <properties>
     <kotlin.compiler.jvmTarget>1.8</kotlin.compiler.jvmTarget>
