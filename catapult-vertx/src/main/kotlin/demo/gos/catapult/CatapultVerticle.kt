@@ -1,8 +1,6 @@
 package demo.gos.catapult
 
-import demo.gos.common.Areas
-import demo.gos.common.Commons
-import demo.gos.common.Point
+import demo.gos.common.*
 import io.vertx.core.*
 import io.vertx.core.json.JsonObject
 import io.vertx.core.logging.Logger
@@ -15,6 +13,7 @@ import io.vertx.kotlin.core.http.listenAwait
 import io.vertx.kotlin.coroutines.CoroutineVerticle
 import io.vertx.kotlin.coroutines.awaitResult
 import io.vertx.kotlin.coroutines.dispatcher
+import io.vertx.kotlin.ext.web.client.sendAwait
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.security.SecureRandom
@@ -24,13 +23,14 @@ import kotlin.math.tan
 
 val LOGGER: Logger = LoggerFactory.getLogger("Catapult-Vertx")
 const val PORT = 8889
-const val DELTA_MS: Long = 300
-//val DETERMINIST = Commons.getStringEnv("DETERMINIST", "false") == "true"
-//val SPEED = Commons.getDoubleEnv("SPEED", 35.0)
+const val DELTA_MS: Long = 200
+val LOAD_FACTOR = Commons.getDoubleEnv("LOAD_FACTOR", 0.1)
 //// Accuracy [0, 1]
-//val ACCURACY = Commons.getDoubleEnv("ACCURACY", 0.7)
-//val SHOT_RANGE = Commons.getDoubleEnv("SHOT_RANGE", 20.0)
-//val MIN_SPEED = ACCURACY * SPEED
+val ACCURACY = Commons.getDoubleEnv("ACCURACY", 0.9)
+val SHOT_RANGE = Commons.getDoubleEnv("SHOT_RANGE", 400.0)
+//val DETERMINIST = Commons.getStringEnv("DETERMINIST", "false") == "true"
+val SPEED = Commons.getDoubleEnv("SPEED", 110.0)
+val IMPACT_ZONE = Commons.getDoubleEnv("IMPACT_ZONE", 75.0)
 
 val RND = SecureRandom()
 
@@ -102,6 +102,7 @@ class CatapultVerticle : CoroutineVerticle() {
 }
 
 class Catapult(private val vertx: Vertx, private val id: String, private val x: Double, private val y: Double) {
+  private var boulders = mutableListOf<Boulder>()
   private var gauge = 0.0
   private var inError = false
 
@@ -134,6 +135,8 @@ class Catapult(private val vertx: Vertx, private val id: String, private val x: 
 
   private suspend fun update(delta: Double) {
     display()
+    val newBoulders = boulders.filter { !it.update(delta) }
+    boulders = newBoulders.toMutableList()
   }
 
   suspend fun load(ctx: RoutingContext) {
@@ -143,10 +146,54 @@ class Catapult(private val vertx: Vertx, private val id: String, private val x: 
       it.complete(tan(atan(tan(atan(d)))))
     }
     ctx.response().end(d.toString())
-    gauge += 0.01
+    gauge += LOAD_FACTOR
     if (gauge >= 1.0) {
-      // TODO: shoot
+      // Shoot!
+      shoot()
       gauge = 0.0
+    }
+  }
+
+  private suspend fun shoot() {
+    val pos = Point(x, y)
+    kotlin.runCatching {
+      // Get all villains
+      val res = WebClient.create(vertx).get(Commons.BATTLEFIELD_PORT, Commons.BATTLEFIELD_HOST, "/gm/elements")
+        .addQueryParam("type", ElementType.VILLAIN.toString())
+        .addQueryParam("status", ElementStatus.ALIVE.toString()).sendAwait()
+
+      // Filter within range
+      val all = res.bodyAsJsonArray().mapNotNull { if (it is JsonObject) it else null }
+      val inRange = all.filter {
+        val p = Point(it.getDouble("x"), it.getDouble("y"))
+        pos.diff(p).size() <= SHOT_RANGE
+      }
+      // Accuracy modifier
+      var angle = RND.nextDouble() * (1.0 - ACCURACY) * Math.PI
+      if (RND.nextInt(2) == 0) {
+        angle *= -1
+      }
+      val target = when {
+        inRange.isNotEmpty() -> {
+          val elt = inRange.random()
+          val seg = Segment(pos, Point(elt.getDouble("x"), elt.getDouble("y")))
+          seg.derivate().normalize().rotate(angle).mult(seg.size()).add(pos)
+        }
+        all.isNotEmpty() -> {
+          val elt = all.random()
+          val eltPos = Point(elt.getDouble("x"), elt.getDouble("y"))
+          Segment(pos, eltPos).derivate().normalize().rotate(angle).mult(SHOT_RANGE).add(pos)
+        }
+        else -> null
+      }
+
+      if (target != null) {
+        // Accuracy modifier
+        val boulder = Boulder(vertx, id, pos, target, SPEED, IMPACT_ZONE)
+        boulders.add(boulder)
+      }
+    }.onFailure {
+      LOGGER.error("Shoot error", it)
     }
   }
 
