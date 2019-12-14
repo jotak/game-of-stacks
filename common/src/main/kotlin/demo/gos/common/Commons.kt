@@ -9,14 +9,22 @@ import java.util.*
 
 object Commons {
     private val metricsEnabled = getIntEnv("METRICS_ENABLED", 0)
+    @JvmStatic val groupId = UUID.randomUUID().toString()
     @JvmStatic val uiPort = getIntEnv("GOS_UI_PORT", 8081)
-    @JvmStatic val kafkaConfig: Map<String, String> = mapOf(
+    @JvmStatic val kafkaConfigProducer: Map<String, String> = mapOf(
             "bootstrap.servers" to "localhost:9092",
             "key.serializer" to "org.apache.kafka.common.serialization.StringSerializer",
-            "value.serializer" to "org.apache.kafka.common.serialization.StringSerializer",
-            "key.deserializer" to "org.apache.kafka.common.serialization.StringDeserializer",
-            "value.deserializer" to "org.apache.kafka.common.serialization.StringDeserializer",
+            "value.serializer" to "io.vertx.kafka.client.serialization.JsonObjectSerializer",
             "acks" to "1"
+    )
+
+    @JvmStatic val kafkaConfigConsumer: Map<String, String> = mapOf(
+            "bootstrap.servers" to "localhost:9092",
+            "group.id" to groupId,
+            "key.deserializer" to "org.apache.kafka.common.serialization.StringDeserializer",
+            "value.deserializer" to "io.vertx.kafka.client.serialization.JsonObjectDeserializer",
+            "auto.offset.reset" to "earliest",
+            "enable.auto.commit" to "false"
     )
 
 

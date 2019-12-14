@@ -12,10 +12,8 @@
   <modules>
     <module>common</module>
     <module>ui</module>
-    <module>villains</module>
-    <module>gm</module>
     <module>catapult-vertx</module>
-    <module>heroes</module>
+    <module>hero</module>
   </modules>
 
 </project>

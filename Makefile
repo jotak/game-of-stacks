@@ -9,9 +9,6 @@ install:
 test:
 	mvn test
 
-start-gm:
-	java -jar ./gm/target/gos-gm-${VERSION}-runner.jar
-
 start-ui:
 	java -jar ./ui/target/gos-ui-${VERSION}-runner.jar
 
@@ -21,8 +18,11 @@ start-villains:
 start-catapult-vertx:
 	java -jar ./catapult-vertx/target/gos-catapult-vertx-${VERSION}-runner.jar
 
-start-hero:
-	java -jar ./hero/target/gos-hero-${VERSION}-runner.jar
+start-ned:
+	export shortId="ned" && java -jar ./hero/target/gos-hero-${VERSION}-runner.jar
+
+start-aria:
+	export shortId="aria" && java -jar ./hero/target/gos-hero-${VERSION}-runner.jar
 
 start:
-	make -j5 start-gm start-ui start-villains start-catapult-vertx start-heroes
+	make -j4  start-ui start-catapult-vertx start-ned start-aria

@@ -1,6 +1,9 @@
 package demo.gos.hero
 
-import demo.gos.common.*
+import demo.gos.common.Areas
+import demo.gos.common.Players
+import demo.gos.common.Point
+import demo.gos.common.Noise
 import io.quarkus.runtime.StartupEvent
 import io.quarkus.scheduler.Scheduled
 import io.smallrye.reactive.messaging.annotations.Channel
@@ -16,50 +19,93 @@ import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton
 
-
 @Singleton
 class Hero {
     companion object {
         val LOG: Logger = Logger.getLogger(Hero::class.java.name)
-        val HEROES = listOf(
-                Position("Aria Stark", 500.0, 400.0),
-                Position("Ned Stark",  500.0, 200.0),
-                Position("John Snow",  500.0, 100.0),
-                Position("Daenerys Targaryen", 400.0, 400.0)
+        const val DELTA_MS = 300L
+        val HEROES = mapOf(
+                "aria" to "Aria-Stark",
+                "ned" to "Ned-Stark",
+                "john" to "John-Snow",
+                "deany" to "Daenerys-Targaryen"
         )
     }
 
-    @ConfigProperty(name = "num", defaultValue = "0")
-    lateinit var num: Provider<Int>
+    @ConfigProperty(name = "shortId", defaultValue = "aria")
+    lateinit var shortId: Provider<String>
+
+    @ConfigProperty(name = "accuracy", defaultValue = "0.7")
+    lateinit var accuracy: Provider<Double>
+
+    @ConfigProperty(name = "speed", defaultValue = "35.0")
+    lateinit var speed: Provider<Double>
 
     lateinit var id: String
 
 
-    val position = AtomicReference<Point>(Point(500.0, 400.0))
-    val dead = AtomicBoolean(false)
-    val paused = AtomicBoolean(false)
+    private val position = AtomicReference<Point>(Point(500.0, 400.0))
+    private val dead = AtomicBoolean(false)
+    private val paused = AtomicBoolean(false)
+    private val targetWeapon = AtomicReference<Point>()
 
 
     @Inject
     @Channel("hero-making-noise")
-    lateinit var emitter: Emitter<JsonObject>
+    lateinit var heroNoiseEmitter: Emitter<JsonObject>
 
-    fun onStart(@Observes e: StartupEvent){
+    @Inject
+    @Channel("display")
+    lateinit var displayEmitter: Emitter<JsonObject>
+
+    fun onStart(@Observes e: StartupEvent) {
         reset()
-        LOG.info("${id} has joined the game (${position.get().x()}, ${position.get().y()})")
+        LOG.info("$id has joined the game (${position.get().x()}, ${position.get().y()})")
     }
 
-    @Scheduled(every = "5s")
+    @Scheduled(every = "0.3s")
     fun scheduled() {
-        if(!paused.get()) {
+        if (!paused.get()) {
             makeNoise()
+            if (targetWeapon.get() != null && !isOnWeapon()) {
+                walk()
+            }
+            display()
         }
     }
 
+    private fun walk() {
+        position.set(Players.walk(
+                pos = position.get(),
+                dest = targetWeapon.get(),
+                accuracy = accuracy.get(),
+                speed = speed.get(),
+                delta = DELTA_MS.toDouble() / 1000
+        ))
+
+        LOG.info("$id at ${position.get()} walking toward ${targetWeapon.get()}")
+    }
+
+    private fun isOnWeapon(): Boolean {
+        return targetWeapon.get()?.equals(position.get()) ?: false
+    }
+
+    private fun display() {
+        val color = if (dead.get()) "#802020" else "#101030"
+        val json = JsonObject()
+                .put("id", id)
+                .put("style", "position: absolute; background-color: $color; transition: top: ${DELTA_MS}ms, left ${DELTA_MS}ms; height: 30px; width: 30px; z-index: 8;")
+                .put("text", "")
+                .put("x", position.get().x() - 15)
+                .put("y", position.get().x() - 15)
+        displayEmitter.send(json)
+    }
+
     @Incoming("game")
-    fun game(e: String) {
-       LOG.info(e)
-        when(e) {
+    fun game(o: JsonObject) {
+        val type = o.getString("type")!!
+        LOG.info("$id received $type")
+        when (type) {
             "play" -> paused.set(false)
             "pause" -> paused.set(true)
             "reset" -> reset()
@@ -67,21 +113,27 @@ class Hero {
     }
 
     private fun reset() {
-        val hero = HEROES[num.get()]
+        id = HEROES.getValue(shortId.get())
         paused.set(false)
         dead.set(false)
-        id = hero.id
-        position.set(Point(hero.x, hero.y))
+        position.set(Players.spawnIn(Areas.spawnHeroesArea))
     }
 
     @Incoming("villain-making-noise")
     fun villainMakingNoise(o: JsonObject) {
-        val noise = o.mapTo(Position::class.java)
-        LOG.info("received: $noise")
+        val noise = o.mapTo(Noise::class.java)
+        LOG.finest("$id  received villain noise: $noise")
+    }
+
+    @Incoming("weapon-making-noise")
+    fun weaponMakingNoise(o: JsonObject) {
+        val noise = o.mapTo(Noise::class.java)
+        LOG.info("$id received weapon noise: $noise")
+        targetWeapon.compareAndSet(null, noise.toPoint())
     }
 
     fun makeNoise() {
-        emitter.send(JsonObject.mapFrom(Position(id, position.get().x(), position.get().y())))
+        heroNoiseEmitter.send(JsonObject.mapFrom(Noise.fromPoint(id, position.get())))
     }
 
 }

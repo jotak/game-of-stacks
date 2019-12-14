@@ -5,6 +5,8 @@ import io.vertx.core.Vertx
 import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
 import io.vertx.ext.web.client.WebClient
+import io.vertx.kafka.client.producer.KafkaProducer
+import io.vertx.kafka.client.producer.KafkaProducerRecord
 import io.vertx.kotlin.ext.web.client.sendAwait
 import io.vertx.kotlin.ext.web.client.sendJsonAwait
 import java.util.*
@@ -13,6 +15,7 @@ class Boulder(private val vertx: Vertx, private val parentId: String, initPos: P
   private var curPos: Point = initPos
   private val id = "BOULDER-VX-" + UUID.randomUUID().toString()
   private var exploding = false
+  private val kafkaProducer = KafkaProducer.create<String, JsonObject>(vertx, Commons.kafkaConfigProducer)
 
   suspend fun update(delta: Double): Boolean {
     val segToDest = Segment(curPos, destPos)
@@ -36,20 +39,7 @@ class Boulder(private val vertx: Vertx, private val parentId: String, initPos: P
     exploding = true
     // Get all villains
     kotlin.runCatching {
-      val res = WebClient.create(vertx).get(Commons.BATTLEFIELD_PORT, Commons.BATTLEFIELD_HOST, "/gm/elements")
-        .addQueryParam("type", ElementType.VILLAIN.toString())
-        .addQueryParam("status", ElementStatus.ALIVE.toString()).sendAwait()
-
-      val dead = res.bodyAsJsonArray().mapNotNull { if (it is JsonObject) it else null }
-        .filter {
-          val p = Point(it.getDouble("x"), it.getDouble("y"))
-          curPos.diff(p).size() <= impactZone
-        }.map {
-          JsonObject().put("killerId", parentId).put("targetId", it.getString("id"))
-        }
-
-      LOGGER.info("Killing ${dead.size} !!")
-      WebClient.create(vertx).patch(Commons.BATTLEFIELD_PORT, Commons.BATTLEFIELD_HOST, "/gm/action/batch").sendJsonAwait(JsonArray(dead))
+      //TODO recode this with kafka (just need to send a kill event on a zone)
     }.onFailure {
       LOGGER.error("Boom error", it)
     }
@@ -63,10 +53,10 @@ class Boulder(private val vertx: Vertx, private val parentId: String, initPos: P
       .put("x", curPos.x() - 10)
       .put("y", curPos.y() - 10)
 
-    kotlin.runCatching {
-      WebClient.create(vertx).post(Commons.UI_PORT, Commons.UI_HOST, "/display").sendJsonAwait(json)
-    }.onFailure {
-      LOGGER.error("Display error", it)
+    kafkaProducer.write(KafkaProducerRecord.create("display", json)) { ar ->
+      if (!ar.succeeded()) {
+        LOGGER.error("Display error", ar.cause())
+      }
     }
   }
 }
