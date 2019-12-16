@@ -10,7 +10,9 @@ import java.util.*
 object Commons {
   private val metricsEnabled = getIntEnv("METRICS_ENABLED", 0)
   @JvmStatic val groupId = UUID.randomUUID().toString()
-  @JvmStatic val kafkaAddress = getStringEnv("KAFKA_ADDRESS", "localhost:9092")
+  // TODO: do not hardcode (but fails for some reason when read from ENV)
+  @JvmStatic val kafkaAddress = "my-cluster-kafka-bootstrap.kafka:9092"
+  // @JvmStatic val kafkaAddress = getStringEnv("KAFKA_ADDRESS", "localhost:9092")
   @JvmStatic val kafkaConfigProducer: Map<String, String> = mapOf(
     "bootstrap.servers" to kafkaAddress,
     "key.serializer" to "org.apache.kafka.common.serialization.StringSerializer",
@@ -27,7 +29,7 @@ object Commons {
     "enable.auto.commit" to "false"
   )
 
-  @JvmStatic  fun getStringEnv(varname: String, def: String): String {
+  @JvmStatic fun getStringEnv(varname: String, def: String): String {
     val `val` = System.getenv(varname)
     return if (`val` == null || `val`.isEmpty()) {
       def
@@ -37,7 +39,7 @@ object Commons {
     }
   }
 
-  @JvmStatic  fun getIntEnv(varname: String?, def: Int): Int {
+  @JvmStatic fun getIntEnv(varname: String?, def: Int): Int {
     val `val` = System.getenv(varname)
     return if (`val` == null || `val`.isEmpty()) {
       def
