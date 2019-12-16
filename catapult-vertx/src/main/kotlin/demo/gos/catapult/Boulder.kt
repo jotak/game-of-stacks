@@ -1,17 +1,16 @@
 package demo.gos.catapult
 
-import demo.gos.common.*
+import demo.gos.common.Commons
+import demo.gos.common.maths.Point
+import demo.gos.common.maths.Segment
 import io.vertx.core.Vertx
-import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
-import io.vertx.ext.web.client.WebClient
 import io.vertx.kafka.client.producer.KafkaProducer
 import io.vertx.kafka.client.producer.KafkaProducerRecord
-import io.vertx.kotlin.ext.web.client.sendAwait
-import io.vertx.kotlin.ext.web.client.sendJsonAwait
+import io.vertx.kotlin.kafka.client.producer.writeAwait
 import java.util.*
 
-class Boulder(private val vertx: Vertx, private val parentId: String, initPos: Point, private val destPos: Point, private val speed: Double, private val impactZone: Double) {
+class Boulder(vertx: Vertx, initPos: Point, private val destPos: Point, private val speed: Double, private val impactZone: Double) {
   private var curPos: Point = initPos
   private val id = "BOULDER-VX-" + UUID.randomUUID().toString()
   private var exploding = false
@@ -37,9 +36,9 @@ class Boulder(private val vertx: Vertx, private val parentId: String, initPos: P
   private suspend fun boom() {
     LOGGER.info("BOOM!")
     exploding = true
-    // Get all villains
     kotlin.runCatching {
-      //TODO recode this with kafka (just need to send a kill event on a zone)
+      val json = JsonObject().put("x", curPos.x()).put("y", curPos.y()).put("r", impactZone)
+      kafkaProducer.writeAwait(KafkaProducerRecord.create("kill-around", json))
     }.onFailure {
       LOGGER.error("Boom error", it)
     }
@@ -53,10 +52,10 @@ class Boulder(private val vertx: Vertx, private val parentId: String, initPos: P
       .put("x", curPos.x() - 10)
       .put("y", curPos.y() - 10)
 
-    kafkaProducer.write(KafkaProducerRecord.create("display", json)) { ar ->
-      if (!ar.succeeded()) {
-        LOGGER.error("Display error", ar.cause())
-      }
+    kotlin.runCatching {
+      kafkaProducer.writeAwait(KafkaProducerRecord.create("display", json))
+    }.onFailure {
+      LOGGER.error("Display error", it)
     }
   }
 }

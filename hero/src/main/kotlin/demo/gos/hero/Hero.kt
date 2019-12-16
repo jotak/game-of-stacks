@@ -1,9 +1,9 @@
 package demo.gos.hero
 
 import demo.gos.common.Areas
-import demo.gos.common.Players
-import demo.gos.common.Point
 import demo.gos.common.Noise
+import demo.gos.common.Players
+import demo.gos.common.maths.Point
 import io.quarkus.runtime.StartupEvent
 import io.quarkus.scheduler.Scheduled
 import io.smallrye.reactive.messaging.annotations.Channel
@@ -11,6 +11,7 @@ import io.smallrye.reactive.messaging.annotations.Emitter
 import io.vertx.core.json.JsonObject
 import org.eclipse.microprofile.config.inject.ConfigProperty
 import org.eclipse.microprofile.reactive.messaging.Incoming
+import java.security.SecureRandom
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import java.util.logging.Logger
@@ -18,6 +19,8 @@ import javax.enterprise.event.Observes
 import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton
+
+val RND = SecureRandom()
 
 @Singleton
 class Hero {
@@ -76,6 +79,7 @@ class Hero {
 
     private fun walk() {
         position.set(Players.walk(
+                rnd = RND,
                 pos = position.get(),
                 dest = targetWeapon.get(),
                 accuracy = accuracy.get(),
@@ -116,7 +120,7 @@ class Hero {
         id = HEROES.getValue(shortId.get())
         paused.set(false)
         dead.set(false)
-        position.set(Players.spawnIn(Areas.spawnHeroesArea))
+        position.set(Areas.spawnHeroesArea.spawn(RND))
     }
 
     @Incoming("villain-making-noise")

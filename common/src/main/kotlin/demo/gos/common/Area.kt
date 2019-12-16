@@ -1,13 +1,10 @@
 package demo.gos.common
 
-import com.fasterxml.jackson.annotation.JsonCreator
-import com.fasterxml.jackson.annotation.JsonProperty
+import demo.gos.common.maths.Point
+import java.security.SecureRandom
 
-
-data class Area @JsonCreator constructor(
-        @JsonProperty("name") val name: String,
-        @JsonProperty("x") val x: Double,
-        @JsonProperty("y") val y: Double,
-        @JsonProperty("width") val width: Double,
-        @JsonProperty("height") val height: Double
-)
+data class Area(val x: Double, val y: Double, val width: Double, val height: Double) {
+  fun spawn(rnd: SecureRandom): Point {
+    return Point(x + rnd.nextDouble() * width, y + rnd.nextDouble() * height)
+  }
+}
