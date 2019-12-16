@@ -26,5 +26,8 @@ start-ned:
 start-aria:
 	export shortId="aria" && java -jar ./hero/target/gos-hero-${VERSION}-runner.jar
 
+start-kafka:
+	cd kafka; docker-compose up
+
 start:
 	make -j5 start-ui start-villains start-catapult-vertx start-ned start-aria
