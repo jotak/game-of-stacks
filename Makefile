@@ -3,6 +3,8 @@ VERSION := 0.0.1
 clean:
 	mvn clean
 
+build: install
+
 install:
 	mvn install -DskipTests
 
@@ -25,4 +27,4 @@ start-aria:
 	export shortId="aria" && java -jar ./hero/target/gos-hero-${VERSION}-runner.jar
 
 start:
-	make -j4  start-ui start-catapult-vertx start-ned start-aria
+	make -j5 start-ui start-villains start-catapult-vertx start-ned start-aria
