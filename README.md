@@ -26,7 +26,4 @@ At the moment, only UI and Villains are deployed. See comments in Makefile for m
 ## TODO
 
 - Docker builds: more layered build (no fat jar)
-- Maybe/probably we don't want to build hotspot + openj9 images for all as it's done now
-- sed image tags or such within deployment yamls
 - Improve kafka deployment (would be better without shell scripts & curl)
-- Fix hardcoded broker url

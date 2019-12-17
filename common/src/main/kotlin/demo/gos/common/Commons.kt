@@ -10,9 +10,7 @@ import java.util.*
 object Commons {
   private val metricsEnabled = getIntEnv("METRICS_ENABLED", 0)
   @JvmStatic val groupId = UUID.randomUUID().toString()
-  // TODO: do not hardcode (but fails for some reason when read from ENV)
-  @JvmStatic val kafkaAddress = "my-cluster-kafka-bootstrap.kafka:9092"
-  // @JvmStatic val kafkaAddress = getStringEnv("KAFKA_ADDRESS", "localhost:9092")
+  @JvmStatic val kafkaAddress = getStringEnv("KAFKA_ADDRESS", "localhost:9092")
   @JvmStatic val kafkaConfigProducer: Map<String, String> = mapOf(
     "bootstrap.servers" to kafkaAddress,
     "key.serializer" to "org.apache.kafka.common.serialization.StringSerializer",
@@ -30,43 +28,33 @@ object Commons {
   )
 
   @JvmStatic fun getStringEnv(varname: String, def: String): String {
-    val `val` = System.getenv(varname)
-    return if (`val` == null || `val`.isEmpty()) {
+    val v = System.getenv(varname)
+    return if (v == null || v.isEmpty()) {
       def
     } else {
-      println(varname + " = " + html(`val`))
-      html(`val`)
+      println("$varname = $v")
+      v
     }
   }
 
   @JvmStatic fun getIntEnv(varname: String?, def: Int): Int {
-    val `val` = System.getenv(varname)
-    return if (`val` == null || `val`.isEmpty()) {
+    val v = System.getenv(varname)
+    return if (v == null || v.isEmpty()) {
       def
     } else {
-      `val`.toInt()
+      println("$varname = $v")
+      v.toInt()
     }
   }
 
   @JvmStatic fun getDoubleEnv(varname: String?, def: Double): Double {
-    val `val` = System.getenv(varname)
-    return if (`val` == null || `val`.isEmpty()) {
+    val v = System.getenv(varname)
+    return if (v == null || v.isEmpty()) {
       def
     } else {
-      `val`.toDouble()
+      println("$varname = $v")
+      v.toDouble()
     }
-  }
-
-  @JvmStatic fun html(str: String): String {
-    val out = StringBuilder()
-    for (c in str.toCharArray()) {
-      if (!Character.isLetterOrDigit(c)) {
-        out.append(String.format("&#x%x;", c.toInt()))
-      } else {
-        out.append(c)
-      }
-    }
-    return out.toString()
   }
 
   @JvmStatic fun vertxOptions(): VertxOptions {
