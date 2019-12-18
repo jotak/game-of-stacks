@@ -27,44 +27,34 @@ object Commons {
     "enable.auto.commit" to "false"
   )
 
-  @JvmStatic  fun getStringEnv(varname: String, def: String): String {
-    val `val` = System.getenv(varname)
-    return if (`val` == null || `val`.isEmpty()) {
+  @JvmStatic fun getStringEnv(varname: String, def: String): String {
+    val v = System.getenv(varname)
+    return if (v == null || v.isEmpty()) {
       def
     } else {
-      println(varname + " = " + html(`val`))
-      html(`val`)
+      println("$varname = $v")
+      v
     }
   }
 
-  @JvmStatic  fun getIntEnv(varname: String?, def: Int): Int {
-    val `val` = System.getenv(varname)
-    return if (`val` == null || `val`.isEmpty()) {
+  @JvmStatic fun getIntEnv(varname: String?, def: Int): Int {
+    val v = System.getenv(varname)
+    return if (v == null || v.isEmpty()) {
       def
     } else {
-      `val`.toInt()
+      println("$varname = $v")
+      v.toInt()
     }
   }
 
   @JvmStatic fun getDoubleEnv(varname: String?, def: Double): Double {
-    val `val` = System.getenv(varname)
-    return if (`val` == null || `val`.isEmpty()) {
+    val v = System.getenv(varname)
+    return if (v == null || v.isEmpty()) {
       def
     } else {
-      `val`.toDouble()
+      println("$varname = $v")
+      v.toDouble()
     }
-  }
-
-  @JvmStatic fun html(str: String): String {
-    val out = StringBuilder()
-    for (c in str.toCharArray()) {
-      if (!Character.isLetterOrDigit(c)) {
-        out.append(String.format("&#x%x;", c.toInt()))
-      } else {
-        out.append(c)
-      }
-    }
-    return out.toString()
   }
 
   @JvmStatic fun vertxOptions(): VertxOptions {
