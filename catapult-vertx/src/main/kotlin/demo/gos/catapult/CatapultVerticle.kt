@@ -64,12 +64,14 @@ class CatapultVerticle : CoroutineVerticle() {
 class Catapult(private val vertx: Vertx, private val id: String, private val pos: Point) {
   private val kafkaProducer = KafkaProducer.create<String, JsonObject>(vertx, Commons.kafkaConfigProducer)
   private var boulders = mutableListOf<Boulder>()
-  private var target: Point? = null
+  private var target: Noise? = null
   private var gauge = 0.0
-  private var inError = false
+  private var isPaused = false
 
   init {
-    // TODO: play/pause/reset
+    KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
+      .subscribe("game").handler { onGameControls(it.value()) }
+
     KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
       .subscribe("villain-making-noise").handler { listenToVillains(it.value()) }
 
@@ -80,11 +82,28 @@ class Catapult(private val vertx: Vertx, private val id: String, private val pos
     }
   }
 
+  private fun onGameControls(json: JsonObject) {
+    when (json.getString("type")) {
+      "play" -> isPaused = false
+      "pause" -> isPaused = true
+      "reset" -> reset()
+    }
+  }
+
+  private fun reset() {
+    isPaused = false
+    gauge = 0.0
+    target = null
+    boulders = mutableListOf()
+  }
+
   private suspend fun update(delta: Double) {
-    makeNoise()
+    if (!isPaused) {
+      makeNoise()
+      val newBoulders = boulders.filter { !it.update(delta) }
+      boulders = newBoulders.toMutableList()
+    }
     display()
-    val newBoulders = boulders.filter { !it.update(delta) }
-    boulders = newBoulders.toMutableList()
   }
 
   private suspend fun makeNoise() {
@@ -96,6 +115,10 @@ class Catapult(private val vertx: Vertx, private val id: String, private val pos
   }
 
   suspend fun load(ctx: RoutingContext) {
+    if (isPaused) {
+      ctx.response().end("no (I'm paused)")
+      return
+    }
     // Do something CPU intensive
     val d = vertx.executeBlockingAwait<Double> {
       val d = ctx.request().getParam("val")?.toDoubleOrNull() ?: 0.0
@@ -113,17 +136,24 @@ class Catapult(private val vertx: Vertx, private val id: String, private val pos
 
   // listen to noise; when target seems more interesting than the current one, take it instead
   private fun listenToVillains(json: JsonObject) {
-    val vPos = Point(json.getDouble("x"), json.getDouble("y"))
-    if (target == null) {
-      LOGGER.info("Catapult has elected a target at $vPos")
-      target = vPos
+    val noise = json.mapTo(Noise::class.java)
+    val noisePos = noise.toPoint()
+    val currentTarget = target
+    if (currentTarget == null) {
+      LOGGER.info("Catapult has elected a target at $noisePos")
+      target = noise
     } else {
-      val currentDist = Segment(pos, target).size()
-      val newDist = Segment(pos, vPos).size()
-      // 5% chances to get attention
-      if (newDist < currentDist && RND.nextInt(100) < 5) {
-        LOGGER.info("Catapult has elected a different target at $vPos")
-        target = vPos
+      if (noise.id == currentTarget.id) {
+        // Update target position
+        target = noise
+      } else {
+        val currentDist = Segment(pos, currentTarget.toPoint()).size()
+        val newDist = Segment(pos, noisePos).size()
+        // 5% chances to get attention
+        if (newDist < currentDist && RND.nextInt(100) < 5) {
+          LOGGER.info("Catapult has elected a different target at $noisePos")
+          target = noise
+        }
       }
     }
   }
@@ -137,7 +167,7 @@ class Catapult(private val vertx: Vertx, private val id: String, private val pos
         angle *= -1
       }
       // Is in range?
-      val segToDest = Segment(pos, t)
+      val segToDest = Segment(pos, t.toPoint())
       val shootSize = min(segToDest.size(), SHOT_RANGE)
       val dest = segToDest.derivate().normalize().rotate(angle).mult(shootSize).add(pos)
       val boulder = Boulder(vertx, pos, dest, SPEED, IMPACT_ZONE)
@@ -147,7 +177,7 @@ class Catapult(private val vertx: Vertx, private val id: String, private val pos
 
   private suspend fun display() {
     val red = (gauge * 255).toInt()
-    val color = if (inError) "red" else "rgb($red,128,128)"
+    val color = "rgb($red,128,128)"
     val json = JsonObject()
       .put("id", id)
       .put("style", "position: absolute; background-color: $color; height: 50px; width: 50px; z-index: 7;")

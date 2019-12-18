@@ -1,9 +1,6 @@
 package demo.gos.villains
 
-import demo.gos.common.Areas
-import demo.gos.common.Commons
-import demo.gos.common.Noise
-import demo.gos.common.Players
+import demo.gos.common.*
 import demo.gos.common.maths.Point
 import demo.gos.common.maths.Segment
 import io.vertx.core.Vertx
@@ -19,7 +16,7 @@ import java.security.SecureRandom
 import java.util.*
 
 const val DELTA_MS = 200L
-const val RANGE = 30
+const val RANGE = 30.0
 val SPEED = Commons.getDoubleEnv("SPEED", 35.0)
 // Accuracy [0, 1]
 val ACCURACY = Commons.getDoubleEnv("ACCURACY", 0.7)
@@ -32,14 +29,20 @@ class Villain(vertx: Vertx) {
   private var randomDest: Point? = null
   private var target: Noise? = null
   private var isDead = false
+  private var isPaused = false
 
   init {
-    // TODO: play/pause/reset
+    KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
+      .subscribe("game").handler { onGameControls(it.value()) }
+
     KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
       .subscribe("hero-making-noise").handler { listenToHeroes(it.value()) }
 
     KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
-      .subscribe("kill-around").handler { killAround(it.value()) }
+      .subscribe("kill-around").handler { onKillAround(it.value()) }
+
+    KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
+      .subscribe("kill-single").handler { onKillSingle(it.value()) }
 
     // Start game loop
     vertx.setPeriodic(DELTA_MS) {
@@ -47,6 +50,22 @@ class Villain(vertx: Vertx) {
         update(DELTA_MS.toDouble() / 1000.0)
       }
     }
+  }
+
+  private fun onGameControls(json: JsonObject) {
+    when (json.getString("type")) {
+      "play" -> isPaused = false
+      "pause" -> isPaused = true
+      "reset" -> reset()
+    }
+  }
+
+  private fun reset() {
+    isPaused = false
+    isDead = false
+    pos = Areas.spawnVillainsArea.spawn(RND)
+    randomDest = null
+    target = null
   }
 
   // listen to heroes noise to detect if a good target is available
@@ -73,21 +92,45 @@ class Villain(vertx: Vertx) {
     }
   }
 
-  private fun killAround(json: JsonObject) {
-    val impact = Point(json.getDouble("x"), json.getDouble("y"))
-    val r = json.getDouble("r")
-    if (Segment(pos, impact).size() <= r) {
+  private fun onKillAround(json: JsonObject) {
+    if (isDead) {
+      return
+    }
+    val zone = json.mapTo(Circle::class.java)
+    if (zone.contains(pos)) {
+      LOGGER.info("Aaaarrrrhggg!!!! (Today, a villain has died)")
+      isDead = true
+    }
+  }
+
+  private fun onKillSingle(json: JsonObject) {
+    if (isDead) {
+      return
+    }
+    if (id == json.getString("id")) {
       LOGGER.info("Aaaarrrrhggg!!!! (Today, a villain has died)")
       isDead = true
     }
   }
 
   private suspend fun update(delta: Double) {
-    if (!isDead) {
-      val dest = target?.toPoint() ?: pickRandomDest()
-      pos = Players.walk(RND, pos, dest, SPEED, ACCURACY, delta)
-      if (isOnTarget()) {
-        // TODO: Kill / kamikaze
+    if (!isDead && !isPaused) {
+      val t = target
+      if (t != null) {
+        pos = Players.walk(RND, pos, t.toPoint(), SPEED, ACCURACY, delta)
+        // If destination reached => kill target
+        if (Circle.fromCenter(pos, RANGE).contains(t.toPoint())) {
+          // TODO: broadcasting maybe not necessary here?
+          kotlin.runCatching {
+            kafkaProducer.writeAwait(KafkaProducerRecord.create("kill-single", JsonObject().put("id", t.id)))
+          }.onFailure {
+            LOGGER.error("Kill error", it)
+          }
+          // Villain dies, too
+          isDead = true
+        }
+      } else {
+        pos = Players.walk(RND, pos, pickRandomDest(), SPEED, ACCURACY, delta)
       }
     }
     display()
@@ -105,13 +148,8 @@ class Villain(vertx: Vertx) {
     return newRd
   }
 
-  private fun isOnTarget(): Boolean {
-    val t = target
-    return t != null && t.toPoint().diff(pos).size() <= RANGE
-  }
-
   private suspend fun display() {
-    val color = if (isDead) "#101030" else "#802020"
+    val color = if (isDead) "#110b32" else "#311b92"
     val json = JsonObject()
       .put("id", id)
       .put("style", "position: absolute; background-color: $color; transition: top ${DELTA_MS}ms, left ${DELTA_MS}ms; height: 30px; width: 30px; border-radius: 50%; z-index: 8;")

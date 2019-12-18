@@ -1,6 +1,7 @@
 package demo.gos.hero
 
 import demo.gos.common.Areas
+import demo.gos.common.Circle
 import demo.gos.common.Noise
 import demo.gos.common.Players
 import demo.gos.common.maths.Point
@@ -46,12 +47,10 @@ class Hero {
 
     lateinit var id: String
 
-
     private val position = AtomicReference<Point>(Areas.spawnHeroesArea.spawn(RND))
     private val dead = AtomicBoolean(false)
     private val paused = AtomicBoolean(false)
     private val targetWeapon = AtomicReference<Point>()
-
 
     @Inject
     @Channel("hero-making-noise")
@@ -68,13 +67,13 @@ class Hero {
 
     @Scheduled(every = "0.3s")
     fun scheduled() {
-        if (!paused.get()) {
+        if (!paused.get() && !dead.get()) {
             makeNoise()
             if (targetWeapon.get() != null && !isOnWeapon()) {
                 walk()
             }
-            display()
         }
+        display()
     }
 
     private fun walk() {
@@ -87,7 +86,7 @@ class Hero {
                 delta = DELTA_MS.toDouble() / 1000
         ))
 
-        LOG.info("$id at ${position.get()} walking toward ${targetWeapon.get()}")
+        LOG.finest("$id at ${position.get()} walking toward ${targetWeapon.get()}")
     }
 
     private fun isOnWeapon(): Boolean {
@@ -136,8 +135,30 @@ class Hero {
         targetWeapon.compareAndSet(null, noise.toPoint())
     }
 
+    @Incoming("kill-around")
+    fun onKillAround(o: JsonObject) {
+        if (dead.get()) {
+            return
+        }
+        val zone = o.mapTo(Circle::class.java)
+        if (zone.contains(position.get())) {
+            LOG.info("Uuuuuhhggg!!!! (Today, $id has died)")
+            dead.set(true)
+        }
+    }
+
+    @Incoming("kill-single")
+    fun onKillSingle(o: JsonObject) {
+        if (dead.get()) {
+            return
+        }
+        if (id == o.getString("id")) {
+            LOG.info("Uuuuuhhggg!!!! (Today, $id has died)")
+            dead.set(true)
+        }
+    }
+
     fun makeNoise() {
         heroNoiseEmitter.send(JsonObject.mapFrom(Noise.fromPoint(id, position.get())))
     }
-
 }
