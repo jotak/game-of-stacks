@@ -28,7 +28,7 @@ class VillainsVerticle : CoroutineVerticle() {
 
   private fun createVillains(size: Int) {
     LOGGER.info("New villains wave!")
-    if (counter > 200) {
+    if (counter > 100) {
       LOGGER.info("(Skipping)")
       return
     }

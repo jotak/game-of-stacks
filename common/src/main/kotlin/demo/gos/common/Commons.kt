@@ -9,7 +9,6 @@ import java.util.*
 
 object Commons {
   private val metricsEnabled = getIntEnv("METRICS_ENABLED", 0)
-  @JvmStatic val groupId = UUID.randomUUID().toString()
   @JvmStatic val kafkaAddress = getStringEnv("KAFKA_ADDRESS", "localhost:9092")
   @JvmStatic val kafkaConfigProducer: Map<String, String> = mapOf(
     "bootstrap.servers" to kafkaAddress,
@@ -18,14 +17,16 @@ object Commons {
     "acks" to "1"
   )
 
-  @JvmStatic val kafkaConfigConsumer: Map<String, String> = mapOf(
-    "bootstrap.servers" to kafkaAddress,
-    "group.id" to groupId,
-    "key.deserializer" to "org.apache.kafka.common.serialization.StringDeserializer",
-    "value.deserializer" to "io.vertx.kafka.client.serialization.JsonObjectDeserializer",
-    "auto.offset.reset" to "latest",
-    "enable.auto.commit" to "false"
-  )
+  @JvmStatic val kafkaConfigConsumer = fun(groupId: String): Map<String, String> {
+    return mapOf(
+      "bootstrap.servers" to kafkaAddress,
+      "group.id" to groupId,
+      "key.deserializer" to "org.apache.kafka.common.serialization.StringDeserializer",
+      "value.deserializer" to "io.vertx.kafka.client.serialization.JsonObjectDeserializer",
+      "auto.offset.reset" to "latest",
+      "enable.auto.commit" to "false"
+    )
+  }
 
   @JvmStatic fun getStringEnv(varname: String, def: String): String {
     val v = System.getenv(varname)

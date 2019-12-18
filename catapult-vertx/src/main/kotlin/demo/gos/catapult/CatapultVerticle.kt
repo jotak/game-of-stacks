@@ -70,7 +70,7 @@ class Catapult(private val vertx: Vertx, private val id: String, private val pos
 
   init {
     // TODO: play/pause/reset
-    KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer)
+    KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
       .subscribe("villain-making-noise").handler { listenToVillains(it.value()) }
 
     vertx.setPeriodic(DELTA_MS) {
@@ -107,6 +107,7 @@ class Catapult(private val vertx: Vertx, private val id: String, private val pos
       // Shoot!
       shoot()
       gauge = 0.0
+      target = null
     }
   }
 
@@ -114,14 +115,14 @@ class Catapult(private val vertx: Vertx, private val id: String, private val pos
   private fun listenToVillains(json: JsonObject) {
     val vPos = Point(json.getDouble("x"), json.getDouble("y"))
     if (target == null) {
-      LOGGER.info("Catapult has elected a target")
+      LOGGER.info("Catapult has elected a target at $vPos")
       target = vPos
     } else {
       val currentDist = Segment(pos, target).size()
       val newDist = Segment(pos, vPos).size()
       // 5% chances to get attention
       if (newDist < currentDist && RND.nextInt(100) < 5) {
-        LOGGER.info("Catapult has elected a different target")
+        LOGGER.info("Catapult has elected a different target at $vPos")
         target = vPos
       }
     }

@@ -27,11 +27,7 @@ import static demo.gos.common.Commons.getKafkaConfigConsumer;
 import static demo.gos.common.Commons.getKafkaConfigProducer;
 
 public class UIVerticle extends AbstractVerticle {
-
   private final Map<String, GameObject> gameObjects = new HashMap<>();
-
-  public UIVerticle() {
-  }
 
   public static void main(String[] args) {
     Vertx.vertx(Commons.vertxOptions()).deployVerticle(new UIVerticle());
@@ -90,7 +86,7 @@ public class UIVerticle extends AbstractVerticle {
     eb.consumer("pause", msg -> publishGameEvent(producer, "pause"));
     eb.consumer("reset", msg -> publishGameEvent(producer, "reset"));
 
-    KafkaConsumer.<String, JsonObject>create(vertx, getKafkaConfigConsumer())
+    KafkaConsumer.<String, JsonObject>create(vertx, getKafkaConfigConsumer().invoke("ui"))
         .handler(r -> displayGameObject(r.value()))
         .subscribe("display", errorHandler("subscribe to topic display"));
 

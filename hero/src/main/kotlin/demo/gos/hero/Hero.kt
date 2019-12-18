@@ -47,7 +47,7 @@ class Hero {
     lateinit var id: String
 
 
-    private val position = AtomicReference<Point>(Point(500.0, 400.0))
+    private val position = AtomicReference<Point>(Areas.spawnHeroesArea.spawn(RND))
     private val dead = AtomicBoolean(false)
     private val paused = AtomicBoolean(false)
     private val targetWeapon = AtomicReference<Point>()
@@ -98,10 +98,10 @@ class Hero {
         val color = if (dead.get()) "#802020" else "#101030"
         val json = JsonObject()
                 .put("id", id)
-                .put("style", "position: absolute; background-color: $color; transition: top: ${DELTA_MS}ms, left ${DELTA_MS}ms; height: 30px; width: 30px; z-index: 8;")
+                .put("style", "position: absolute; background-color: $color; transition: top ${DELTA_MS}ms, left ${DELTA_MS}ms; height: 30px; width: 30px; z-index: 8;")
                 .put("text", "")
                 .put("x", position.get().x() - 15)
-                .put("y", position.get().x() - 15)
+                .put("y", position.get().y() - 15)
         displayEmitter.send(json)
     }
 
@@ -132,7 +132,7 @@ class Hero {
     @Incoming("weapon-making-noise")
     fun weaponMakingNoise(o: JsonObject) {
         val noise = o.mapTo(Noise::class.java)
-        LOG.info("$id received weapon noise: $noise")
+        LOG.finest("$id received weapon noise: $noise")
         targetWeapon.compareAndSet(null, noise.toPoint())
     }
 

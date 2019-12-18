@@ -30,15 +30,15 @@ class Villain(vertx: Vertx) {
   private val id = "V-${UUID.randomUUID()}"
   private var pos = Areas.spawnVillainsArea.spawn(RND)
   private var randomDest: Point? = null
-  private var target: Point? = null
+  private var target: Noise? = null
   private var isDead = false
 
   init {
     // TODO: play/pause/reset
-    KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer)
+    KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
       .subscribe("hero-making-noise").handler { listenToHeroes(it.value()) }
 
-    KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer)
+    KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
       .subscribe("kill-around").handler { killAround(it.value()) }
 
     // Start game loop
@@ -51,27 +51,43 @@ class Villain(vertx: Vertx) {
 
   // listen to heroes noise to detect if a good target is available
   private fun listenToHeroes(json: JsonObject) {
+    val noise = json.mapTo(Noise::class.java)
+    val noisePos = noise.toPoint()
+    val currentTarget = target
+    if (currentTarget == null) {
+      LOGGER.info("A Villain has elected a target at $noisePos")
+      target = noise
+    } else {
+      if (noise.id == currentTarget.id) {
+        // Update target position
+        target = noise
+      } else {
+        val currentDist = Segment(pos, currentTarget.toPoint()).size()
+        val newDist = Segment(pos, noisePos).size()
+        // 5% chances to get attention
+        if (newDist < currentDist && RND.nextInt(100) < 5) {
+          LOGGER.info("A Villain has elected a different target at $noisePos")
+          target = noise
+        }
+      }
+    }
   }
 
   private fun killAround(json: JsonObject) {
-    LOGGER.info("Kill event received")
     val impact = Point(json.getDouble("x"), json.getDouble("y"))
     val r = json.getDouble("r")
     if (Segment(pos, impact).size() <= r) {
-      LOGGER.info("Killed!!!!")
-      LOGGER.info("Today, a villain has died")
+      LOGGER.info("Aaaarrrrhggg!!!! (Today, a villain has died)")
       isDead = true
     }
   }
 
   private suspend fun update(delta: Double) {
     if (!isDead) {
-      val dest = target ?: pickRandomDest()
+      val dest = target?.toPoint() ?: pickRandomDest()
       pos = Players.walk(RND, pos, dest, SPEED, ACCURACY, delta)
       if (isOnTarget()) {
         // TODO: Kill / kamikaze
-      } else {
-        // TODO: move
       }
     }
     display()
@@ -91,7 +107,7 @@ class Villain(vertx: Vertx) {
 
   private fun isOnTarget(): Boolean {
     val t = target
-    return t != null && t.diff(pos).size() <= RANGE
+    return t != null && t.toPoint().diff(pos).size() <= RANGE
   }
 
   private suspend fun display() {
