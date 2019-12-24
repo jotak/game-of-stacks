@@ -9,7 +9,7 @@ import kotlin.math.min
 import kotlin.math.tan
 
 const val DELTA_MS: Long = 200
-val LOAD_FACTOR = Commons.getDoubleEnv("LOAD_FACTOR", 0.1)
+val LOAD_FACTOR = Commons.getDoubleEnv("LOAD_FACTOR", 0.01)
 // Accuracy [0, 1]
 val ACCURACY = Commons.getDoubleEnv("ACCURACY", 0.9)
 val SHOT_RANGE = Commons.getDoubleEnv("SHOT_RANGE", 400.0)
@@ -18,7 +18,7 @@ val SPEED = Commons.getDoubleEnv("SPEED", 110.0)
 val IMPACT_ZONE = Commons.getDoubleEnv("IMPACT_ZONE", 75.0)
 val RND = SecureRandom()
 
-abstract class BaseCatapult(private val id: String) {
+abstract class BaseCatapult(protected val id: String, private val colorize: (Double) -> String) {
   private val pos = Areas.spawnWeaponArea.spawn(RND)
   private var boulders = mutableListOf<BaseBoulder>()
   private var target: Noise? = null
@@ -110,8 +110,8 @@ abstract class BaseCatapult(private val id: String) {
   abstract suspend fun display(data: DisplayData)
 
   private suspend fun display() {
-    val red = (gauge * 255).toInt()
-    val style = "position: absolute; background-color: rgb($red,128,128); height: 50px; width: 50px; z-index: 7;"
+    val color = colorize(gauge)
+    val style = "position: absolute; background-color: $color; height: 50px; width: 50px; z-index: 7;"
     display(DisplayData(id, pos.x() - 25, pos.y() - 25, style, ""))
   }
 }

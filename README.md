@@ -55,8 +55,8 @@ At the moment, only UI and Villains are deployed. See comments in Makefile for m
 - Improve kafka deployment (would be better without shell scripts & curl)
 
 Next steps:
-- Have heroes trigger catapult (through events?)
-- Have a quarkus+graalvm catapult?
 - Have a blocking i/o catapult?
 - Need dockerfiles/images for quarkus; graal and hotspot/oj9
 - New weapon: Bow/arrow; triggered as a process with known target (sysprops/env)
+- Make dead villains disappear after some time
+- Prettify game (graphics / sprites)

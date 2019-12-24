@@ -6,7 +6,7 @@ import io.vertx.core.logging.LoggerFactory
 import io.vertx.kotlin.coroutines.CoroutineVerticle
 
 val LOGGER: Logger = LoggerFactory.getLogger("Villains")
-val WAVES_SIZE = Commons.getIntEnv("WAVES_SIZE", 5)
+val WAVES_SIZE = Commons.getIntEnv("WAVES_SIZE", 10)
 val WAVES_DELAY = Commons.getDoubleEnv("WAVES_DELAY", 20.0)
 
 class VillainsVerticle : CoroutineVerticle() {

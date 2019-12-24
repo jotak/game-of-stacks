@@ -24,6 +24,10 @@ import java.util.*
 val LOGGER: Logger = LoggerFactory.getLogger("Catapult-Vertx")
 const val PORT = 8889
 const val DELTA_MS: Long = 200
+val colorize = fun(gauge: Double): String {
+  val red = (gauge * 255).toInt()
+  return "rgb($red,128,128)"
+}
 
 class CatapultVerticle : CoroutineVerticle() {
   private lateinit var cata: Catapult
@@ -47,7 +51,7 @@ class CatapultVerticle : CoroutineVerticle() {
 }
 
 class Catapult(private val vertx: Vertx, id: String)
-    : BaseCatapult(id) {
+    : BaseCatapult(id, colorize) {
   private val kafkaProducer = KafkaProducer.create<String, JsonObject>(vertx, Commons.kafkaConfigProducer)
 
   init {
@@ -56,6 +60,13 @@ class Catapult(private val vertx: Vertx, id: String)
 
     KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
       .subscribe("villain-making-noise").handler { listenToVillains(it.value().mapTo(Noise::class.java)) }
+
+    KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
+      .subscribe("load-catapult").handler {
+        if (it.value().getString("id") == id) {
+          load(it.value().getDouble("val"))
+        }
+    }
 
     vertx.setPeriodic(DELTA_MS) {
       GlobalScope.launch(vertx.dispatcher()) {

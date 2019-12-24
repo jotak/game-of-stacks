@@ -31,7 +31,7 @@ class Hero {
         val HEROES = mapOf(
                 "aria" to "Aria-Stark",
                 "ned" to "Ned-Stark",
-                "john" to "John-Snow",
+                "jon" to "Jon-Snow",
                 "deany" to "Daenerys-Targaryen"
         )
     }
@@ -45,12 +45,12 @@ class Hero {
     @ConfigProperty(name = "speed", defaultValue = "35.0")
     lateinit var speed: Provider<Double>
 
-    lateinit var id: String
+    private lateinit var id: String
 
     private val position = AtomicReference<Point>(Areas.spawnHeroesArea.spawn(RND))
     private val dead = AtomicBoolean(false)
     private val paused = AtomicBoolean(false)
-    private val targetWeapon = AtomicReference<Point>()
+    private val targetWeapon = AtomicReference<Noise>()
 
     @Inject
     @Channel("hero-making-noise")
@@ -59,6 +59,10 @@ class Hero {
     @Inject
     @Channel("display")
     lateinit var displayEmitter: Emitter<JsonObject>
+
+    @Inject
+    @Channel("load-catapult")
+    lateinit var loadCatapultEmitter: Emitter<JsonObject>
 
     fun onStart(@Observes e: StartupEvent) {
         reset()
@@ -69,18 +73,35 @@ class Hero {
     fun scheduled() {
         if (!paused.get() && !dead.get()) {
             makeNoise()
-            if (targetWeapon.get() != null && !isOnWeapon()) {
-                walk()
+            if (targetWeapon.get() != null) {
+                if (isOnWeapon()) {
+                    loadCatapult()
+                } else {
+                    walk()
+                }
             }
         }
         display()
+    }
+
+    private fun loadCatapult() {
+        val t = targetWeapon.get()
+        if (t != null) {
+            kotlin.runCatching {
+                for (i in 0..30) {
+                    loadCatapultEmitter.send(JsonObject().put("id", t.id).put("val", i))
+                }
+            }.onFailure {
+                LOG.warning("Error while loading catapult: ${it.message}")
+            }
+        }
     }
 
     private fun walk() {
         position.set(Players.walk(
                 rnd = RND,
                 pos = position.get(),
-                dest = targetWeapon.get(),
+                dest = targetWeapon.get().toPoint(),
                 accuracy = accuracy.get(),
                 speed = speed.get(),
                 delta = DELTA_MS.toDouble() / 1000
@@ -90,7 +111,11 @@ class Hero {
     }
 
     private fun isOnWeapon(): Boolean {
-        return targetWeapon.get()?.equals(position.get()) ?: false
+        val t = targetWeapon.get()
+        if (t != null) {
+            return Circle.fromCenter(position.get(), 20.0).contains(t.toPoint())
+        }
+        return false
     }
 
     private fun display() {
@@ -120,6 +145,7 @@ class Hero {
         paused.set(false)
         dead.set(false)
         position.set(Areas.spawnHeroesArea.spawn(RND))
+        targetWeapon.set(null)
     }
 
     @Incoming("villain-making-noise")
@@ -132,7 +158,7 @@ class Hero {
     fun weaponMakingNoise(o: JsonObject) {
         val noise = o.mapTo(Noise::class.java)
         LOG.finest("$id received weapon noise: $noise")
-        targetWeapon.compareAndSet(null, noise.toPoint())
+        targetWeapon.compareAndSet(null, noise)
     }
 
     @Incoming("kill-around")
@@ -158,7 +184,7 @@ class Hero {
         }
     }
 
-    fun makeNoise() {
+    private fun makeNoise() {
         heroNoiseEmitter.send(JsonObject.mapFrom(Noise.fromPoint(id, position.get())))
     }
 }
