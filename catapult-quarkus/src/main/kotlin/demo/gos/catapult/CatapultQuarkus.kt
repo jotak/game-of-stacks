@@ -21,7 +21,7 @@ val colorize = fun(gauge: Double): String {
 // TODO: handle /load http handler
 
 @Singleton
-class Catapult : BaseCatapult("CATA-Q-" + UUID.randomUUID().toString(), colorize) {
+class CatapultQuarkus : BaseCatapult("CATA-Q-" + UUID.randomUUID().toString(), colorize) {
   companion object {
     const val DELTA_MS = 200L
   }
@@ -59,7 +59,11 @@ class Catapult : BaseCatapult("CATA-Q-" + UUID.randomUUID().toString(), colorize
   @Incoming("load-catapult")
   fun loadCatapult(o: JsonObject) {
     if (o.getString("id") == id) {
-      load(o.getDouble("val"))
+      runBlocking {
+        load {
+          it(o.getDouble("val"))
+        }
+      }
     }
   }
 

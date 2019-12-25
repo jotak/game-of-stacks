@@ -1,6 +1,7 @@
 package demo.gos.villains
 
 import demo.gos.common.*
+import demo.gos.common.Gauge
 import demo.gos.common.maths.Point
 import demo.gos.common.maths.Segment
 import io.vertx.core.Vertx
@@ -30,7 +31,8 @@ class Villain(private val vertx: Vertx) {
   private var target: Noise? = null
   private var isDead = false
   private var isPaused = false
-  private var deadTimer = 0L
+  private val deadTimer = Gauge(3.0, fun() { stop() })
+  private val maxLifeTimer = Gauge(60.0, fun() { stop() })
   private val gameLoopId: Long
   private val consumers = mutableListOf<KafkaConsumer<String, JsonObject>>()
 
@@ -45,12 +47,6 @@ class Villain(private val vertx: Vertx) {
       GlobalScope.launch(vertx.dispatcher()) {
         update(DELTA_MS.toDouble() / 1000.0)
       }
-      if (isDead) {
-        deadTimer += DELTA_MS
-        if (deadTimer > 5000L) {
-          stop()
-        }
-      }
     }
   }
 
@@ -63,6 +59,7 @@ class Villain(private val vertx: Vertx) {
   private fun stop() {
     vertx.cancelTimer(gameLoopId)
     consumers.forEach { it.unsubscribe() }
+    consumers.clear()
   }
 
   private fun onGameControls(json: JsonObject) {
@@ -86,10 +83,10 @@ class Villain(private val vertx: Vertx) {
         // Update target position
         target = noise
       } else {
-        val currentDist = Segment(pos, currentTarget.toPoint()).size()
-        val newDist = Segment(pos, noisePos).size()
+        val currentStrength = currentTarget.strength(pos)
+        val newStrength = noise.strength(pos)
         // 5% chances to get attention
-        if (newDist < currentDist && RND.nextInt(100) < 5) {
+        if (newStrength > currentStrength && RND.nextInt(100) < 5) {
           LOGGER.info("A Villain has elected a different target at $noisePos")
           target = noise
         }
@@ -119,7 +116,9 @@ class Villain(private val vertx: Vertx) {
   }
 
   private suspend fun update(delta: Double) {
-    if (!isDead && !isPaused) {
+    if (isDead) {
+      deadTimer.add(delta)
+    } else if (!isPaused) {
       val t = target
       if (t != null) {
         pos = Players.walk(RND, pos, t.toPoint(), SPEED, ACCURACY, delta)
@@ -135,22 +134,13 @@ class Villain(private val vertx: Vertx) {
           isDead = true
         }
       } else {
-        pos = Players.walk(RND, pos, pickRandomDest(), SPEED, ACCURACY, delta)
+        val positions = Players.walkRandom(RND, pos, randomDest, SPEED, ACCURACY, delta)
+        pos = positions.first
+        randomDest = positions.second
       }
     }
     display()
-  }
-
-  private fun pickRandomDest(): Point {
-    val rd = randomDest
-    if (rd != null && pos.diff(randomDest).size() > RANGE) {
-      // Not arrived yet => continue to walk to previously picked random destination
-      return rd
-    }
-    // Else, pick a new random destination close to current position
-    val newRd = Point(RND.nextDouble() * 100, RND.nextDouble() * 100).diff(Point(50.0, 50.0)).add(pos)
-    randomDest = newRd
-    return newRd
+    maxLifeTimer.add(delta)
   }
 
   private suspend fun display() {

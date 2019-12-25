@@ -4,26 +4,29 @@ import demo.gos.common.*
 import demo.gos.common.maths.Point
 import demo.gos.common.maths.Segment
 import java.security.SecureRandom
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.atan
 import kotlin.math.min
 import kotlin.math.tan
 
 const val DELTA_MS: Long = 200
+val X = System.getenv("X")?.toDouble()
+val Y = System.getenv("Y")?.toDouble()
 val LOAD_FACTOR = Commons.getDoubleEnv("LOAD_FACTOR", 0.01)
 // Accuracy [0, 1]
 val ACCURACY = Commons.getDoubleEnv("ACCURACY", 0.9)
 val SHOT_RANGE = Commons.getDoubleEnv("SHOT_RANGE", 400.0)
-//val DETERMINIST = Commons.getStringEnv("DETERMINIST", "false") == "true"
 val SPEED = Commons.getDoubleEnv("SPEED", 110.0)
 val IMPACT_ZONE = Commons.getDoubleEnv("IMPACT_ZONE", 75.0)
 val RND = SecureRandom()
 
 abstract class BaseCatapult(protected val id: String, private val colorize: (Double) -> String) {
-  private val pos = Areas.spawnWeaponArea.spawn(RND)
+  private val pos = GameObjects.startingPoint(RND, Areas.spawnWeaponArea, X, Y)
   private var boulders = mutableListOf<BaseBoulder>()
   private var target: Noise? = null
-  private var gauge = 0.0
+  private var gauge = Gauge(1.0, fun() { shoot() })
   private var isPaused = false
+  private var isLoading = AtomicBoolean(false)
 
   protected fun onGameCommand(command: GameCommand) {
     when (command.type) {
@@ -35,7 +38,7 @@ abstract class BaseCatapult(protected val id: String, private val colorize: (Dou
 
   private fun reset() {
     isPaused = false
-    gauge = 0.0
+    gauge.reset()
     target = null
     boulders = mutableListOf()
   }
@@ -51,25 +54,28 @@ abstract class BaseCatapult(protected val id: String, private val colorize: (Dou
 
   abstract suspend fun makeNoise(noise: Noise)
 
-  fun load(v: Double?): String {
+  suspend fun load(blockingWrapper: suspend (blockingCode: (v: Double?) -> Double) -> Double?): Double? {
     if (isPaused) {
-      return "no (I'm paused)"
+      println("Loading aborted (paused)")
+      return gauge.get()
+    }
+    if (isLoading.getAndSet(true)) {
+      println("Loading aborted (not ready)")
+      return gauge.get()
     }
     // Do something CPU intensive
-    val d = tan(atan(tan(atan(v ?: 0.0))))
-    gauge += LOAD_FACTOR
-    if (gauge >= 1.0) {
-      // Shoot!
-      shoot()
-      gauge = 0.0
-      target = null
-    }
-    return d.toString()
+    return blockingWrapper(fun(v: Double?): Double {
+//      Thread.sleep(1000)
+      val d = tan(atan(tan(atan(v ?: 0.0))))
+      println(d)
+      gauge.add(LOAD_FACTOR)
+      isLoading.set(false)
+      return gauge.get()
+    })
   }
 
   // listen to noise; when target seems more interesting than the current one, take it instead
   protected fun listenToVillains(noise: Noise) {
-    val noisePos = noise.toPoint()
     val currentTarget = target
     if (currentTarget == null) {
       target = noise
@@ -78,10 +84,10 @@ abstract class BaseCatapult(protected val id: String, private val colorize: (Dou
         // Update target position
         target = noise
       } else {
-        val currentDist = Segment(pos, currentTarget.toPoint()).size()
-        val newDist = Segment(pos, noisePos).size()
+        val currentStrength = currentTarget.strength(pos)
+        val newStrength = noise.strength(pos)
         // 5% chances to get attention
-        if (newDist < currentDist && RND.nextInt(100) < 5) {
+        if (newStrength > currentStrength && RND.nextInt(100) < 5) {
           target = noise
         }
       }
@@ -102,6 +108,7 @@ abstract class BaseCatapult(protected val id: String, private val colorize: (Dou
       val dest = segToDest.derivate().normalize().rotate(angle).mult(shootSize).add(pos)
       val boulder = createBoulder(pos, dest, SPEED, IMPACT_ZONE)
       boulders.add(boulder)
+      target = null
     }
   }
 
@@ -110,7 +117,7 @@ abstract class BaseCatapult(protected val id: String, private val colorize: (Dou
   abstract suspend fun display(data: DisplayData)
 
   private suspend fun display() {
-    val color = colorize(gauge)
+    val color = colorize(gauge.get())
     val style = "position: absolute; background-color: $color; height: 50px; width: 50px; z-index: 7;"
     display(DisplayData(id, pos.x() - 25, pos.y() - 25, style, ""))
   }

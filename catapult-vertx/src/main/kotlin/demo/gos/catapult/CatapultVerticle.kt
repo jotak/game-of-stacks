@@ -13,6 +13,7 @@ import io.vertx.ext.web.Router
 import io.vertx.kafka.client.consumer.KafkaConsumer
 import io.vertx.kafka.client.producer.KafkaProducer
 import io.vertx.kafka.client.producer.KafkaProducerRecord
+import io.vertx.kotlin.core.executeBlockingAwait
 import io.vertx.kotlin.core.http.listenAwait
 import io.vertx.kotlin.coroutines.CoroutineVerticle
 import io.vertx.kotlin.coroutines.dispatcher
@@ -33,20 +34,14 @@ class CatapultVerticle : CoroutineVerticle() {
   private lateinit var cata: Catapult
 
   override suspend fun start() {
-    cata = initCatapult()
-  }
-
-  private suspend fun initCatapult(): Catapult {
     val id = "CATA-VX-" + UUID.randomUUID().toString()
-    val cata = Catapult(vertx, id)
+    cata = Catapult(vertx, id)
 
     val router = Router.router(vertx)
     router.get("/load").handler { GlobalScope.launch(vertx.dispatcher()) { cata.load(it.request().getParam("val")?.toDoubleOrNull()) } }
 
     vertx.createHttpServer().requestHandler(router).listenAwait(PORT)
     LOGGER.info("HTTPS server started on port $PORT")
-
-    return cata
   }
 }
 
@@ -62,9 +57,12 @@ class Catapult(private val vertx: Vertx, id: String)
       .subscribe("villain-making-noise").handler { listenToVillains(it.value().mapTo(Noise::class.java)) }
 
     KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
-      .subscribe("load-catapult").handler {
-        if (it.value().getString("id") == id) {
-          load(it.value().getDouble("val"))
+      .subscribe("load-catapult").handler { record ->
+        val value = record.value()
+        if (value.getString("id") == id) {
+          GlobalScope.launch(vertx.dispatcher()) {
+            load(value.getDouble("val"))
+          }
         }
     }
 
@@ -73,6 +71,16 @@ class Catapult(private val vertx: Vertx, id: String)
         update(DELTA_MS.toDouble() / 1000.0)
       }
     }
+  }
+
+  suspend fun load(value: Double?): Double? {
+    val res = super.load { loadBlocking ->
+      vertx.executeBlockingAwait {
+        it.complete(loadBlocking(value))
+      }
+    }
+    println(res)
+    return res
   }
 
   override suspend fun makeNoise(noise: Noise) {

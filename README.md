@@ -58,5 +58,4 @@ Next steps:
 - Have a blocking i/o catapult?
 - Need dockerfiles/images for quarkus; graal and hotspot/oj9
 - New weapon: Bow/arrow; triggered as a process with known target (sysprops/env)
-- Make dead villains disappear after some time
 - Prettify game (graphics / sprites)

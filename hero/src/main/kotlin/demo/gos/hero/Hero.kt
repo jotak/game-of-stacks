@@ -1,9 +1,6 @@
 package demo.gos.hero
 
-import demo.gos.common.Areas
-import demo.gos.common.Circle
-import demo.gos.common.Noise
-import demo.gos.common.Players
+import demo.gos.common.*
 import demo.gos.common.maths.Point
 import io.quarkus.runtime.StartupEvent
 import io.quarkus.scheduler.Scheduled
@@ -22,6 +19,9 @@ import javax.inject.Provider
 import javax.inject.Singleton
 
 val RND = SecureRandom()
+
+val X = System.getenv("X")?.toDouble()
+val Y = System.getenv("Y")?.toDouble()
 
 @Singleton
 class Hero {
@@ -47,7 +47,8 @@ class Hero {
 
     private lateinit var id: String
 
-    private val position = AtomicReference<Point>(Areas.spawnHeroesArea.spawn(RND))
+    private val position = AtomicReference<Point>()
+    private val randomDest = AtomicReference<Point>()
     private val dead = AtomicBoolean(false)
     private val paused = AtomicBoolean(false)
     private val targetWeapon = AtomicReference<Noise>()
@@ -79,6 +80,8 @@ class Hero {
                 } else {
                     walk()
                 }
+            } else {
+                walkRandom()
             }
         }
         display()
@@ -108,6 +111,21 @@ class Hero {
         ))
 
         LOG.finest("$id at ${position.get()} walking toward ${targetWeapon.get()}")
+    }
+
+    private fun walkRandom() {
+        val positions = Players.walkRandom(
+                rnd = RND,
+                pos = position.get(),
+                dest = randomDest.get(),
+                accuracy = accuracy.get(),
+                speed = speed.get(),
+                delta = DELTA_MS.toDouble() / 1000
+        )
+        position.set(positions.first)
+        randomDest.set(positions.second)
+
+        LOG.finest("$id at ${position.get()} walking randomly")
     }
 
     private fun isOnWeapon(): Boolean {
@@ -144,8 +162,9 @@ class Hero {
         id = HEROES.getValue(shortId.get())
         paused.set(false)
         dead.set(false)
-        position.set(Areas.spawnHeroesArea.spawn(RND))
+        position.set(GameObjects.startingPoint(RND, Areas.spawnHeroesArea, X, Y))
         targetWeapon.set(null)
+        randomDest.set(null)
     }
 
     @Incoming("villain-making-noise")
@@ -158,7 +177,18 @@ class Hero {
     fun weaponMakingNoise(o: JsonObject) {
         val noise = o.mapTo(Noise::class.java)
         LOG.finest("$id received weapon noise: $noise")
-        targetWeapon.compareAndSet(null, noise)
+        val currentTarget = targetWeapon.get()
+        if (currentTarget == null) {
+            // New target
+            targetWeapon.set(noise)
+        } else if (!isOnWeapon()) {
+            val pos = position.get()
+            val currentStrength = currentTarget.strength(pos)
+            val newStrength = noise.strength(pos)
+            if (newStrength > currentStrength) {
+                targetWeapon.set(noise)
+            }
+        }
     }
 
     @Incoming("kill-around")
