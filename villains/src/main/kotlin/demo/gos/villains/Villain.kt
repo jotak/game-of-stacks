@@ -22,7 +22,7 @@ val SPEED = Commons.getDoubleEnv("SPEED", 35.0)
 val ACCURACY = Commons.getDoubleEnv("ACCURACY", 0.7)
 val RND = SecureRandom()
 
-class Villain(vertx: Vertx) {
+class Villain(private val vertx: Vertx) {
   private val kafkaProducer = KafkaProducer.create<String, JsonObject>(vertx, Commons.kafkaConfigProducer)
   private val id = "V-${UUID.randomUUID()}"
   private var pos = Areas.spawnVillainsArea.spawn(RND)
@@ -30,42 +30,47 @@ class Villain(vertx: Vertx) {
   private var target: Noise? = null
   private var isDead = false
   private var isPaused = false
+  private var deadTimer = 0L
+  private val gameLoopId: Long
+  private val consumers = mutableListOf<KafkaConsumer<String, JsonObject>>()
 
   init {
-    KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
-      .subscribe("game").handler { onGameControls(it.value()) }
-
-    KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
-      .subscribe("hero-making-noise").handler { listenToHeroes(it.value()) }
-
-    KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
-      .subscribe("kill-around").handler { onKillAround(it.value()) }
-
-    KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
-      .subscribe("kill-single").handler { onKillSingle(it.value()) }
+    newConsumer().subscribe("game").handler { onGameControls(it.value()) }
+    newConsumer().subscribe("hero-making-noise").handler { listenToHeroes(it.value()) }
+    newConsumer().subscribe("kill-around").handler { onKillAround(it.value()) }
+    newConsumer().subscribe("kill-single").handler { onKillSingle(it.value()) }
 
     // Start game loop
-    vertx.setPeriodic(DELTA_MS) {
+    gameLoopId = vertx.setPeriodic(DELTA_MS) {
       GlobalScope.launch(vertx.dispatcher()) {
         update(DELTA_MS.toDouble() / 1000.0)
       }
+      if (isDead) {
+        deadTimer += DELTA_MS
+        if (deadTimer > 5000L) {
+          stop()
+        }
+      }
     }
+  }
+
+  private fun newConsumer(): KafkaConsumer<String, JsonObject> {
+    val c = KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
+    consumers.add(c)
+    return c
+  }
+
+  private fun stop() {
+    vertx.cancelTimer(gameLoopId)
+    consumers.forEach { it.unsubscribe() }
   }
 
   private fun onGameControls(json: JsonObject) {
     when (json.getString("type")) {
       "play" -> isPaused = false
       "pause" -> isPaused = true
-      "reset" -> reset()
+      "reset" -> stop()
     }
-  }
-
-  private fun reset() {
-    isPaused = false
-    isDead = false
-    pos = Areas.spawnVillainsArea.spawn(RND)
-    randomDest = null
-    target = null
   }
 
   // listen to heroes noise to detect if a good target is available
