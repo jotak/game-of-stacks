@@ -1,6 +1,32 @@
 # game-of-stacks
 This simulation game will show the power of different stacks (Quarkus, Vert.x, ..) depending on the business logic and show the results using Istio and Kiali. This will be presented as fun simulation UI showing the attack of Winterfell by a group of microservices :-) 
 
+## Running locally
+
+### Kafka
+
+- With docker-compose:
+
+```bash
+cd kafka && docker-compose up
+```
+
+- From local installation (example)
+
+```bash
+cd ~/apps/kafka_2.12-2.3.0/
+bin/zookeeper-server-start.sh config/zookeeper.properties
+# Open new terminal
+bin/kafka-server-start.sh config/server.properties 
+```
+
+### GoS services
+
+```bash
+make clean install start
+```
+
+Open http://localhost:8081
 
 ## Running on Minikube
 
