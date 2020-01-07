@@ -1,6 +1,7 @@
 package demo.gos.villains
 
 import demo.gos.common.*
+import demo.gos.common.Gauge
 import demo.gos.common.maths.Point
 import demo.gos.common.maths.Segment
 import io.vertx.core.Vertx
@@ -22,7 +23,7 @@ val SPEED = Commons.getDoubleEnv("SPEED", 35.0)
 val ACCURACY = Commons.getDoubleEnv("ACCURACY", 0.7)
 val RND = SecureRandom()
 
-class Villain(vertx: Vertx) {
+class Villain(private val vertx: Vertx) {
   private val kafkaProducer = KafkaProducer.create<String, JsonObject>(vertx, Commons.kafkaConfigProducer)
   private val id = "V-${UUID.randomUUID()}"
   private var pos = Areas.spawnVillainsArea.spawn(RND)
@@ -30,42 +31,43 @@ class Villain(vertx: Vertx) {
   private var target: Noise? = null
   private var isDead = false
   private var isPaused = false
+  private val deadTimer = Gauge(3.0, fun() { stop() })
+  private val maxLifeTimer = Gauge(60.0, fun() { stop() })
+  private val gameLoopId: Long
+  private val consumers = mutableListOf<KafkaConsumer<String, JsonObject>>()
 
   init {
-    KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
-      .subscribe("game").handler { onGameControls(it.value()) }
-
-    KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
-      .subscribe("hero-making-noise").handler { listenToHeroes(it.value()) }
-
-    KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
-      .subscribe("kill-around").handler { onKillAround(it.value()) }
-
-    KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
-      .subscribe("kill-single").handler { onKillSingle(it.value()) }
+    newConsumer().subscribe("game").handler { onGameControls(it.value()) }
+    newConsumer().subscribe("hero-making-noise").handler { listenToHeroes(it.value()) }
+    newConsumer().subscribe("kill-around").handler { onKillAround(it.value()) }
+    newConsumer().subscribe("kill-single").handler { onKillSingle(it.value()) }
 
     // Start game loop
-    vertx.setPeriodic(DELTA_MS) {
+    gameLoopId = vertx.setPeriodic(DELTA_MS) {
       GlobalScope.launch(vertx.dispatcher()) {
         update(DELTA_MS.toDouble() / 1000.0)
       }
     }
   }
 
+  private fun newConsumer(): KafkaConsumer<String, JsonObject> {
+    val c = KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
+    consumers.add(c)
+    return c
+  }
+
+  private fun stop() {
+    vertx.cancelTimer(gameLoopId)
+    consumers.forEach { it.unsubscribe() }
+    consumers.clear()
+  }
+
   private fun onGameControls(json: JsonObject) {
     when (json.getString("type")) {
       "play" -> isPaused = false
       "pause" -> isPaused = true
-      "reset" -> reset()
+      "reset" -> stop()
     }
-  }
-
-  private fun reset() {
-    isPaused = false
-    isDead = false
-    pos = Areas.spawnVillainsArea.spawn(RND)
-    randomDest = null
-    target = null
   }
 
   // listen to heroes noise to detect if a good target is available
@@ -81,10 +83,10 @@ class Villain(vertx: Vertx) {
         // Update target position
         target = noise
       } else {
-        val currentDist = Segment(pos, currentTarget.toPoint()).size()
-        val newDist = Segment(pos, noisePos).size()
+        val currentStrength = currentTarget.strength(pos)
+        val newStrength = noise.strength(pos)
         // 5% chances to get attention
-        if (newDist < currentDist && RND.nextInt(100) < 5) {
+        if (newStrength > currentStrength && RND.nextInt(100) < 5) {
           LOGGER.info("A Villain has elected a different target at $noisePos")
           target = noise
         }
@@ -114,7 +116,9 @@ class Villain(vertx: Vertx) {
   }
 
   private suspend fun update(delta: Double) {
-    if (!isDead && !isPaused) {
+    if (isDead) {
+      deadTimer.add(delta)
+    } else if (!isPaused) {
       val t = target
       if (t != null) {
         pos = Players.walk(RND, pos, t.toPoint(), SPEED, ACCURACY, delta)
@@ -130,22 +134,13 @@ class Villain(vertx: Vertx) {
           isDead = true
         }
       } else {
-        pos = Players.walk(RND, pos, pickRandomDest(), SPEED, ACCURACY, delta)
+        val positions = Players.walkRandom(RND, pos, randomDest, SPEED, ACCURACY, delta)
+        pos = positions.first
+        randomDest = positions.second
       }
     }
     display()
-  }
-
-  private fun pickRandomDest(): Point {
-    val rd = randomDest
-    if (rd != null && pos.diff(randomDest).size() > RANGE) {
-      // Not arrived yet => continue to walk to previously picked random destination
-      return rd
-    }
-    // Else, pick a new random destination close to current position
-    val newRd = Point(RND.nextDouble() * 100, RND.nextDouble() * 100).diff(Point(50.0, 50.0)).add(pos)
-    randomDest = newRd
-    return newRd
+    maxLifeTimer.add(delta)
   }
 
   private suspend fun display() {

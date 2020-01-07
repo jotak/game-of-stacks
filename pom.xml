@@ -12,7 +12,9 @@
   <modules>
     <module>common</module>
     <module>ui</module>
+    <module>catapult-common</module>
     <module>catapult-vertx</module>
+    <module>catapult-quarkus</module>
     <module>hero</module>
     <module>villains</module>
   </modules>

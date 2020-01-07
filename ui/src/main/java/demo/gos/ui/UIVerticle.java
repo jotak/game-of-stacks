@@ -60,7 +60,7 @@ public class UIVerticle extends AbstractVerticle {
 
     // Start the web server and tell it to use the router to handle requests.
     vertx.createHttpServer().requestHandler(router)
-        .listen(serverOptions.getPort(), serverOptions.getHost());
+        .listen(serverOptions.getPort(), serverOptions.getHost(), a -> System.out.println(">>>>>>>> Server started on http://localhost:8081/ <<<<<<<<"));
 
     EventBus eb = vertx.eventBus();
     eb.consumer("init-session", msg -> {

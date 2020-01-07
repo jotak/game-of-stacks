@@ -37,6 +37,11 @@
 
   <dependencies>
     <dependency>
+      <groupId>demo.gos</groupId>
+      <artifactId>gos-catapult-common</artifactId>
+      <version>0.0.1</version>
+    </dependency>
+    <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-web-client</artifactId>
     </dependency>
@@ -141,6 +146,5 @@
       </plugin>
     </plugins>
   </build>
-
 
 </project>
