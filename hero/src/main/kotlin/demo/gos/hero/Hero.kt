@@ -2,10 +2,12 @@ package demo.gos.hero
 
 import demo.gos.common.*
 import demo.gos.common.maths.Point
+import io.quarkus.runtime.ShutdownEvent
 import io.quarkus.runtime.StartupEvent
-import io.quarkus.scheduler.Scheduled
 import io.smallrye.reactive.messaging.annotations.Channel
 import io.smallrye.reactive.messaging.annotations.Emitter
+import io.smallrye.reactive.messaging.annotations.OnOverflow
+import io.vertx.core.Vertx
 import io.vertx.core.json.JsonObject
 import org.eclipse.microprofile.config.inject.ConfigProperty
 import org.eclipse.microprofile.reactive.messaging.Incoming
@@ -45,13 +47,20 @@ class Hero {
     @ConfigProperty(name = "speed", defaultValue = "35.0")
     lateinit var speed: Provider<Double>
 
+    private val initialized = AtomicBoolean(false)
     private lateinit var id: String
+
 
     private val position = AtomicReference<Point>()
     private val randomDest = AtomicReference<Point>()
     private val dead = AtomicBoolean(false)
     private val paused = AtomicBoolean(false)
     private val targetWeapon = AtomicReference<Noise>()
+
+    @Inject
+    lateinit var vertx:Vertx
+
+    lateinit var vertxScheduler: VertxScheduler
 
     @Inject
     @Channel("hero-making-noise")
@@ -63,14 +72,21 @@ class Hero {
 
     @Inject
     @Channel("load-catapult")
+    @OnOverflow(OnOverflow.Strategy.BUFFER)
     lateinit var loadCatapultEmitter: Emitter<JsonObject>
 
     fun onStart(@Observes e: StartupEvent) {
+        vertxScheduler = VertxScheduler(vertx)
         reset()
         LOG.info("$id has joined the game (${position.get().x()}, ${position.get().y()})")
+        vertxScheduler.schedule(200, this::scheduled)
+        initialized.set(true)
     }
 
-    @Scheduled(every = "0.3s")
+    fun onShutdown(@Observes e: ShutdownEvent) {
+        vertxScheduler.cancel()
+    }
+
     fun scheduled() {
         if (!paused.get() && !dead.get()) {
             makeNoise()
@@ -149,6 +165,9 @@ class Hero {
 
     @Incoming("game")
     fun game(o: JsonObject) {
+        if(!initialized.get()) {
+            return
+        }
         val type = o.getString("type")!!
         LOG.info("$id received $type")
         when (type) {
@@ -169,12 +188,18 @@ class Hero {
 
     @Incoming("villain-making-noise")
     fun villainMakingNoise(o: JsonObject) {
+        if(!initialized.get()) {
+            return
+        }
         val noise = o.mapTo(Noise::class.java)
-        LOG.finest("$id  received villain noise: $noise")
+        LOG.finest("$id received villain noise: $noise")
     }
 
     @Incoming("weapon-making-noise")
     fun weaponMakingNoise(o: JsonObject) {
+        if(!initialized.get()) {
+            return
+        }
         val noise = o.mapTo(Noise::class.java)
         LOG.finest("$id received weapon noise: $noise")
         val currentTarget = targetWeapon.get()
@@ -193,6 +218,9 @@ class Hero {
 
     @Incoming("kill-around")
     fun onKillAround(o: JsonObject) {
+        if(!initialized.get()) {
+            return
+        }
         if (dead.get()) {
             return
         }
@@ -205,6 +233,9 @@ class Hero {
 
     @Incoming("kill-single")
     fun onKillSingle(o: JsonObject) {
+        if(!initialized.get()) {
+            return
+        }
         if (dead.get()) {
             return
         }

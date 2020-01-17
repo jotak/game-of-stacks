@@ -3,14 +3,20 @@ package demo.gos.catapult
 import demo.gos.common.DisplayData
 import demo.gos.common.GameCommand
 import demo.gos.common.Noise
+import demo.gos.common.VertxScheduler
 import demo.gos.common.maths.Point
+import io.quarkus.runtime.ShutdownEvent
+import io.quarkus.runtime.StartupEvent
 import io.quarkus.scheduler.Scheduled
 import io.smallrye.reactive.messaging.annotations.Channel
 import io.smallrye.reactive.messaging.annotations.Emitter
+import io.vertx.core.Vertx
 import io.vertx.core.json.JsonObject
 import kotlinx.coroutines.runBlocking
 import org.eclipse.microprofile.reactive.messaging.Incoming
 import java.util.*
+import java.util.concurrent.atomic.AtomicBoolean
+import javax.enterprise.event.Observes
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -27,6 +33,13 @@ class CatapultQuarkus : BaseCatapult("CATA-Q-" + UUID.randomUUID().toString(), c
   }
 
   @Inject
+  lateinit var vertx: Vertx
+
+  lateinit var vertxScheduler: VertxScheduler
+
+  private val initialized = AtomicBoolean(false)
+
+  @Inject
   @Channel("weapon-making-noise")
   lateinit var noiseEmitter: Emitter<JsonObject>
 
@@ -38,8 +51,16 @@ class CatapultQuarkus : BaseCatapult("CATA-Q-" + UUID.randomUUID().toString(), c
   @Channel("kill-around")
   lateinit var killAroundEmitter: Emitter<JsonObject>
 
-  // Doesn't work at desired rate, SimpleScheduler only checks at 1s intervals
-  @Scheduled(every = "0.2s")
+  fun onStart(@Observes e: StartupEvent) {
+    vertxScheduler = VertxScheduler(vertx)
+    vertxScheduler.schedule(200, this::scheduled)
+    initialized.set(true)
+  }
+
+  fun onShutdown(@Observes e: ShutdownEvent) {
+    vertxScheduler.cancel()
+  }
+
   fun scheduled() {
     runBlocking {
       update(DELTA_MS.toDouble() / 1000.0)
@@ -48,16 +69,25 @@ class CatapultQuarkus : BaseCatapult("CATA-Q-" + UUID.randomUUID().toString(), c
 
   @Incoming("game")
   fun game(o: JsonObject) {
+    if(!initialized.get()) {
+      return
+    }
     onGameCommand(o.mapTo(GameCommand::class.java))
   }
 
   @Incoming("villain-making-noise")
   fun villainMakingNoise(o: JsonObject) {
+    if(!initialized.get()) {
+      return
+    }
     listenToVillains(o.mapTo(Noise::class.java))
   }
 
   @Incoming("load-catapult")
   fun loadCatapult(o: JsonObject) {
+    if(!initialized.get()) {
+      return
+    }
     if (o.getString("id") == id) {
       runBlocking {
         load {
