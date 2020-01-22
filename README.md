@@ -49,6 +49,18 @@ make expose
 
 At the moment, only UI and Villains are deployed. See comments in Makefile for more options.
 
+## Build native image
+
+Configure GraalVM for Quarkus:
+https://quarkus.io/guides/building-native-image#configuring-graalvm
+
+Then from a Quarkus maven project (hero, catapult-quarkus, ...)
+```
+$ mvn clean package -Pnative
+$ docker build -f src/main/docker/Dockerfile.native -t hero-native .     
+```
+
+
 ## TODO
 
 - Docker builds: more layered build (no fat jar)

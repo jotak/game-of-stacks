@@ -20,14 +20,11 @@ import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton
 
-val RND = SecureRandom()
-
-val X = System.getenv("X")?.toDouble()
-val Y = System.getenv("Y")?.toDouble()
 
 @Singleton
 class Hero {
     companion object {
+
         val LOG: Logger = Logger.getLogger(Hero::class.java.name)
         const val DELTA_MS = 300L
         val HEROES = mapOf(
@@ -37,6 +34,14 @@ class Hero {
                 "deany" to "Daenerys-Targaryen"
         )
     }
+
+    val RND = SecureRandom()
+
+    @ConfigProperty(name = "X")
+    lateinit var X: Provider<Double>
+
+    @ConfigProperty(name = "Y")
+    lateinit var Y: Provider<Double>
 
     @ConfigProperty(name = "shortId", defaultValue = "aria")
     lateinit var shortId: Provider<String>
@@ -181,7 +186,7 @@ class Hero {
         id = HEROES.getValue(shortId.get())
         paused.set(false)
         dead.set(false)
-        position.set(GameObjects.startingPoint(RND, Areas.spawnHeroesArea, X, Y))
+        position.set(GameObjects.startingPoint(RND, Areas.spawnHeroesArea, X.get(), Y.get()))
         targetWeapon.set(null)
         randomDest.set(null)
     }

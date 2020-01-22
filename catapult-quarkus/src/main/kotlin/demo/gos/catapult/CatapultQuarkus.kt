@@ -20,16 +20,17 @@ import javax.enterprise.event.Observes
 import javax.inject.Inject
 import javax.inject.Singleton
 
-val colorize = fun(gauge: Double): String {
-  val red = (gauge * 255).toInt()
-  return "rgb($red,0,128)"
-}
-// TODO: handle /load http handler
 
+// TODO: handle /load http handler
 @Singleton
 class CatapultQuarkus : BaseCatapult("CATA-Q-" + UUID.randomUUID().toString(), colorize) {
   companion object {
     const val DELTA_MS = 200L
+
+    val colorize = fun(gauge: Double): String {
+      val red = (gauge * 255).toInt()
+      return "rgb($red,0,128)"
+    }
   }
 
   @Inject
