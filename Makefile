@@ -71,9 +71,6 @@ undeploy:
 restart-pods:
 	${K8S_BIN} delete pods -l project=gos
 
-start-ui:
-	java -jar ./ui/target/gos-ui-${VERSION}-runner.jar
-
 start-villains:
 	export WAVES_DELAY=30 WAVES_SIZE=5 && java -jar ./villains/target/gos-villains-${VERSION}-runner.jar
 
