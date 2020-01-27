@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Mesh Arena</title>
+  <style>
+    body {
+      margin: 0;
+      background-image: url(assets/bg.jpg);
+      background-size: 100% auto;
+      background-repeat: no-repeat;
+    }
+
+    #control {
+      z-index: 2;
+      position: absolute;
+    }
+
+    canvas {
+      display: block;
+      position: absolute;
+      z-index: 1;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="control">
+    <button type="button" onclick="play()">Play</button>
+    <button type="button" onclick="pause()">Pause</button>
+    <button type="button" onclick="reset()">Reset</button>
+  </div>
+  
+  <script src="assets/libs/jquery.min.js"></script>
+  <script src="assets/libs/sockjs.min.js"></script>
+  <script src="assets/libs/vertx-eventbus.js"></script>
+  <script src="assets/libs/pixi.min.js"></script>
+  <script src="game.js" type='text/javascript'></script>
+  <script src="service.js" type='text/javascript'></script>
+</body>
+
+</html>

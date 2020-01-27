@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 import java.security.SecureRandom
 import java.util.*
 
-const val DELTA_MS = 200L
+const val DELTA_MS = 1000L
 const val RANGE = 30.0
 val SPEED = Commons.getDoubleEnv("SPEED", 35.0)
 // Accuracy [0, 1]
@@ -29,6 +29,7 @@ class Villain(private val vertx: Vertx) {
   private var pos = Areas.spawnVillainsArea.spawn(RND)
   private var randomDest: Point? = null
   private var target: Noise? = null
+  private var targetCountDown = 0
   private var isDead = false
   private var isPaused = false
   private val deadTimer = Gauge(3.0, fun() { stop() })
@@ -75,6 +76,7 @@ class Villain(private val vertx: Vertx) {
     val noise = json.mapTo(Noise::class.java)
     val noisePos = noise.toPoint()
     val currentTarget = target
+    targetCountDown = 5
     if (currentTarget == null) {
       LOGGER.info("A Villain has elected a target at $noisePos")
       target = noise
@@ -82,6 +84,7 @@ class Villain(private val vertx: Vertx) {
       if (noise.id == currentTarget.id) {
         // Update target position
         target = noise
+
       } else {
         val currentStrength = currentTarget.strength(pos)
         val newStrength = noise.strength(pos)
@@ -140,18 +143,24 @@ class Villain(private val vertx: Vertx) {
       }
     }
     display()
+    if (targetCountDown >= 0) {
+      targetCountDown--
+    } else if (target != null) {
+      LOGGER.info("A villain had no sign from the current target for a while")
+      target = null
+    }
     maxLifeTimer.add(delta)
   }
 
   private suspend fun display() {
-    val color = if (isDead) "#110b32" else "#311b92"
-    val json = JsonObject()
-      .put("id", id)
-      .put("style", "position: absolute; background-color: $color; transition: top ${DELTA_MS}ms, left ${DELTA_MS}ms; height: 30px; width: 30px; border-radius: 50%; z-index: 8;")
-      .put("text", "")
-      .put("x", pos.x() - 15)
-      .put("y", pos.y() - 15)
-
+    val sprite = if (isDead) "rip" else "white-walker"
+    val data = DisplayData(
+      id = id,
+      x = pos.x(),
+      y = pos.y(),
+      sprite = sprite
+    )
+    val json = JsonObject.mapFrom(data)
     kotlin.runCatching {
       kafkaProducer.writeAwait(KafkaProducerRecord.create("display", json))
       if (!isDead) {

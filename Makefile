@@ -75,7 +75,7 @@ start-ui:
 	java -jar ./ui/target/gos-ui-${VERSION}-runner.jar
 
 start-villains:
-	export WAVES_DELAY=4 && java -jar ./villains/target/gos-villains-${VERSION}-runner.jar
+	export WAVES_DELAY=30 WAVES_SIZE=5 && java -jar ./villains/target/gos-villains-${VERSION}-runner.jar
 
 start-catapult-vertx:
 	export Y="150" && java -jar ./catapult-vertx/target/gos-catapult-vertx-${VERSION}-runner.jar
@@ -86,6 +86,12 @@ start-catapult-quarkus:
 start-ned:
 	export Y="150" speed="70" shortId="ned" && java -jar ./hero/target/gos-hero-${VERSION}-runner.jar
 
+dev-web:
+	cd web && mvn compile quarkus:dev
+
+start-web:
+	java -jar ./web/target/gos-web-${VERSION}-runner.jar
+
 start-aria:
 	export Y="350" speed="70" shortId="aria" && java -jar ./hero/target/gos-hero-${VERSION}-runner.jar
 
@@ -93,4 +99,4 @@ start-kafka:
 	cd kafka; docker-compose up
 
 start:
-	make -j6 start-ui start-villains start-catapult-vertx start-catapult-quarkus start-ned start-aria
+	make -j5 start-villains start-catapult-vertx start-catapult-quarkus start-ned start-aria

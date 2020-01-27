@@ -24,7 +24,7 @@ import java.util.*
 
 val LOGGER: Logger = LoggerFactory.getLogger("Catapult-Vertx")
 const val PORT = 8889
-const val DELTA_MS: Long = 200
+const val DELTA_MS: Long = 1000
 val colorize = fun(gauge: Double): String {
   val red = (gauge * 255).toInt()
   return "rgb($red,128,128)"
@@ -79,7 +79,6 @@ class Catapult(private val vertx: Vertx, id: String)
         it.complete(loadBlocking(value))
       }
     }
-    println(res)
     return res
   }
 

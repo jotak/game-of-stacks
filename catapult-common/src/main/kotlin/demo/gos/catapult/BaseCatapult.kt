@@ -67,7 +67,6 @@ abstract class BaseCatapult(protected val id: String, private val colorize: (Dou
     return blockingWrapper(fun(v: Double?): Double {
 //      Thread.sleep(1000)
       val d = tan(atan(tan(atan(v ?: 0.0))))
-      println(d)
       gauge.add(LOAD_FACTOR)
       isLoading.set(false)
       return gauge.get()
@@ -117,8 +116,6 @@ abstract class BaseCatapult(protected val id: String, private val colorize: (Dou
   abstract suspend fun display(data: DisplayData)
 
   private suspend fun display() {
-    val color = colorize(gauge.get())
-    val style = "position: absolute; background-color: $color; height: 50px; width: 50px; z-index: 7;"
-    display(DisplayData(id, pos.x() - 25, pos.y() - 25, style, ""))
+    display(DisplayData(id = id, x = pos.x(), y = pos.y(), sprite = "catapult", value = gauge.get() ))
   }
 }

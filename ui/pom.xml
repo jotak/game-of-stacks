@@ -11,7 +11,7 @@
   <properties>
     <vertx.version>3.8.4</vertx.version>
     <maven-shade-plugin.version>2.4.3</maven-shade-plugin.version>
-    <main.verticle>demo.gos.ui.UIVerticle</main.verticle>
+    <main.verticle>demo.gos.web.UIVerticle</main.verticle>
   </properties>
 
   <dependencies>

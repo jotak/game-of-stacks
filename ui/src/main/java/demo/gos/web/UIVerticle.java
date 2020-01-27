@@ -1,4 +1,4 @@
-package demo.gos.ui;
+package demo.gos.web;
 
 import demo.gos.common.Commons;
 import io.vertx.core.AbstractVerticle;

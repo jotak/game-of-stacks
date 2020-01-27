@@ -7,11 +7,11 @@ import io.quarkus.runtime.StartupEvent
 import io.smallrye.reactive.messaging.annotations.Channel
 import io.smallrye.reactive.messaging.annotations.Emitter
 import io.smallrye.reactive.messaging.annotations.OnOverflow
-import io.vertx.core.Vertx
 import io.vertx.core.json.JsonObject
 import org.eclipse.microprofile.config.inject.ConfigProperty
 import org.eclipse.microprofile.reactive.messaging.Incoming
 import java.security.SecureRandom
+import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import java.util.logging.Logger
@@ -19,14 +19,15 @@ import javax.enterprise.event.Observes
 import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton
+import kotlin.concurrent.scheduleAtFixedRate
 
 
 @Singleton
 class Hero {
     companion object {
-
+        val timer = Timer()
         val LOG: Logger = Logger.getLogger(Hero::class.java.name)
-        const val DELTA_MS = 300L
+        const val DELTA_MS = 1000L
         val HEROES = mapOf(
                 "aria" to "Aria-Stark",
                 "ned" to "Ned-Stark",
@@ -38,10 +39,10 @@ class Hero {
     val RND = SecureRandom()
 
     @ConfigProperty(name = "X")
-    lateinit var X: Provider<Double>
+    lateinit var X: Optional<Double>
 
     @ConfigProperty(name = "Y")
-    lateinit var Y: Provider<Double>
+    lateinit var Y: Optional<Double>
 
     @ConfigProperty(name = "shortId", defaultValue = "aria")
     lateinit var shortId: Provider<String>
@@ -63,11 +64,6 @@ class Hero {
     private val targetWeapon = AtomicReference<Noise>()
 
     @Inject
-    lateinit var vertx:Vertx
-
-    lateinit var vertxScheduler: VertxScheduler
-
-    @Inject
     @Channel("hero-making-noise")
     lateinit var heroNoiseEmitter: Emitter<JsonObject>
 
@@ -81,15 +77,16 @@ class Hero {
     lateinit var loadCatapultEmitter: Emitter<JsonObject>
 
     fun onStart(@Observes e: StartupEvent) {
-        vertxScheduler = VertxScheduler(vertx)
         reset()
         LOG.info("$id has joined the game (${position.get().x()}, ${position.get().y()})")
-        vertxScheduler.schedule(200, this::scheduled)
         initialized.set(true)
+        timer.scheduleAtFixedRate(0L, DELTA_MS) {
+            scheduled()
+        }
     }
 
     fun onShutdown(@Observes e: ShutdownEvent) {
-        vertxScheduler.cancel()
+        timer.cancel()
     }
 
     fun scheduled() {
@@ -158,13 +155,14 @@ class Hero {
     }
 
     private fun display() {
-        val color = if (dead.get()) "#802020" else "#101030"
-        val json = JsonObject()
-                .put("id", id)
-                .put("style", "position: absolute; background-color: $color; transition: top ${DELTA_MS}ms, left ${DELTA_MS}ms; height: 30px; width: 30px; z-index: 8;")
-                .put("text", "")
-                .put("x", position.get().x() - 15)
-                .put("y", position.get().y() - 15)
+        val sprite = if (dead.get()) "rip" else id.toLowerCase()
+        val data = DisplayData(
+                id = id,
+                x =  position.get().x(),
+                y = position.get().y(),
+                sprite = sprite
+        )
+        val json = JsonObject.mapFrom(data)
         displayEmitter.send(json)
     }
 
@@ -186,7 +184,7 @@ class Hero {
         id = HEROES.getValue(shortId.get())
         paused.set(false)
         dead.set(false)
-        position.set(GameObjects.startingPoint(RND, Areas.spawnHeroesArea, X.get(), Y.get()))
+        position.set(GameObjects.startingPoint(RND, Areas.spawnHeroesArea, X.orElse(null), Y.orElse(null)))
         targetWeapon.set(null)
         randomDest.set(null)
     }
