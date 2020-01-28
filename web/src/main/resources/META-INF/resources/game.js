@@ -14,6 +14,7 @@ let elements = {};
 
 let players;
 const explosion = [];
+
 PIXI.loader
     .add('assets/images/players.json')
     .add('assets/images/explosion.json')
