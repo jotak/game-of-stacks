@@ -15,9 +15,9 @@
 #
 ###
 FROM registry.fedoraproject.org/fedora-minimal
-EXPOSE 8081
+EXPOSE 8080
 WORKDIR /work/
-COPY web/target/*-runner /work/application
+COPY hero/target/*-runner /work/application
 RUN chmod 775 /work
 EXPOSE 8080
 CMD ["./application", "-Dquarkus.http.host=0.0.0.0"]
