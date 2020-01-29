@@ -33,4 +33,5 @@ function pause() {
 
 function reset() {
   eb.send("reset", "");
+  resetGame();
 }

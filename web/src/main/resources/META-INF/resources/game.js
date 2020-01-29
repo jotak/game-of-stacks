@@ -35,7 +35,9 @@ PIXI.loader
         }
 
         app.renderer.render(app.stage);
+        app.ticker.add(delta => gameLoop(delta));
     });
+
 app.ticker.add(function (delta) {
     PIXI.tweenManager.update();
 });
@@ -65,12 +67,14 @@ function explode(x, y) {
 
 function resetGame() {
     elements = {};
+    app.stage.removeChildren();
 }
 
 function removeGameObject(obj) {
     if (elements[obj.id]) {
         app.stage.removeChild(elements[obj.id].sprite);
         elements[obj.id] = null;
+        delete elements[obj.id];
     }
 }
 
@@ -80,6 +84,7 @@ function displayGameObject(obj) {
     }
     if (elements[obj.id]) {
         const el = elements[obj.id];
+        el.time = Date.now();
         if (!obj.sprite) {
             removeGameObject(obj);
         } else if (el.spriteName != obj.sprite) {
@@ -119,10 +124,20 @@ function displayGameObject(obj) {
         sprite.anchor.x = 0.5;
         sprite.anchor.y = 0.5;
         elements[obj.id] = {
+            id: obj.id,
             spriteName: obj.sprite,
             sprite,
+            time: Date.now(),
         }
         app.stage.addChild(sprite);
     }
+}
 
+function gameLoop(delta){
+    for(id in elements) {
+        const el = elements[id];
+        if(Date.now() - el.time > 5000) {
+            removeGameObject(el);
+        }
+    }
 }
