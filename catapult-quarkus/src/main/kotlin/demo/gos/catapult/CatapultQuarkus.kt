@@ -86,9 +86,7 @@ class CatapultQuarkus : BaseCatapult("CATA-Q-" + UUID.randomUUID().toString(), c
     }
     if (o.getString("id") == id) {
       runBlocking {
-        load {
-          it(o.getDouble("val"))
-        }
+        load(o.getDouble("val"))
       }
     }
   }

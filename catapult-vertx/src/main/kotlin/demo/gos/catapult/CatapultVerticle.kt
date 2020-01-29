@@ -9,12 +9,11 @@ import io.vertx.core.Vertx
 import io.vertx.core.json.JsonObject
 import io.vertx.core.logging.Logger
 import io.vertx.core.logging.LoggerFactory
-import io.vertx.ext.web.Router
+import io.vertx.ext.sync.Sync
 import io.vertx.kafka.client.consumer.KafkaConsumer
 import io.vertx.kafka.client.producer.KafkaProducer
 import io.vertx.kafka.client.producer.KafkaProducerRecord
 import io.vertx.kotlin.core.executeBlockingAwait
-import io.vertx.kotlin.core.http.listenAwait
 import io.vertx.kotlin.coroutines.CoroutineVerticle
 import io.vertx.kotlin.coroutines.dispatcher
 import io.vertx.kotlin.kafka.client.producer.writeAwait
@@ -23,8 +22,8 @@ import kotlinx.coroutines.launch
 import java.util.*
 
 val LOGGER: Logger = LoggerFactory.getLogger("Catapult-Vertx")
-const val PORT = 8889
-const val DELTA_MS: Long = 1000
+// const val PORT = 8889
+const val DELTA_MS: Long = 200
 val colorize = fun(gauge: Double): String {
   val red = (gauge * 255).toInt()
   return "rgb($red,128,128)"
@@ -37,17 +36,24 @@ class CatapultVerticle : CoroutineVerticle() {
     val id = "CATA-VX-" + UUID.randomUUID().toString()
     cata = Catapult(vertx, id)
 
-    val router = Router.router(vertx)
-    router.get("/load").handler { GlobalScope.launch(vertx.dispatcher()) { cata.load(it.request().getParam("val")?.toDoubleOrNull()) } }
+//    val router = Router.router(vertx)
+//    router.get("/load").handler { GlobalScope.launch(vertx.dispatcher()) { cata.synchronizer.handle(it.request().getParam("val")?.toDoubleOrNull()) } }
 
-    vertx.createHttpServer().requestHandler(router).listenAwait(PORT)
-    LOGGER.info("HTTPS server started on port $PORT")
+//    vertx.createHttpServer().requestHandler(router).listenAwait(PORT)
+//    LOGGER.info("HTTPS server started on port $PORT")
+  }
+
+  override suspend fun stop() {
+    println("stopping parent")
+    super.stop()
+    cata.running = false
   }
 }
 
 class Catapult(private val vertx: Vertx, id: String)
     : BaseCatapult(id, colorize) {
   private val kafkaProducer = KafkaProducer.create<String, JsonObject>(vertx, Commons.kafkaConfigProducer)
+  var running = true
 
   init {
     KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
@@ -57,14 +63,14 @@ class Catapult(private val vertx: Vertx, id: String)
       .subscribe("villain-making-noise").handler { listenToVillains(it.value().mapTo(Noise::class.java)) }
 
     KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
-      .subscribe("load-catapult").handler { record ->
+      .subscribe("load-catapult").handler(Sync.fiberHandler { record ->
         val value = record.value()
         if (value.getString("id") == id) {
           GlobalScope.launch(vertx.dispatcher()) {
-            load(value.getDouble("val"))
+            loadSyncCatapult(value.getDouble("val"))
           }
         }
-    }
+    })
 
     vertx.setPeriodic(DELTA_MS) {
       GlobalScope.launch(vertx.dispatcher()) {
@@ -73,13 +79,10 @@ class Catapult(private val vertx: Vertx, id: String)
     }
   }
 
-  suspend fun load(value: Double?): Double? {
-    val res = super.load { loadBlocking ->
-      vertx.executeBlockingAwait {
-        it.complete(loadBlocking(value))
-      }
+  private suspend fun loadSyncCatapult(d: Double?): Double? {
+    return vertx.executeBlockingAwait {
+      it.complete(load(d))
     }
-    return res
   }
 
   override suspend fun makeNoise(noise: Noise) {

@@ -5,6 +5,7 @@ import demo.gos.common.maths.Point
 import demo.gos.common.maths.Segment
 import java.security.SecureRandom
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.atan
 import kotlin.math.min
 import kotlin.math.tan
@@ -27,6 +28,9 @@ abstract class BaseCatapult(protected val id: String, private val colorize: (Dou
   private var gauge = Gauge(1.0, fun() { shoot() })
   private var isPaused = false
   private var isLoading = AtomicBoolean(false)
+  private val computedValue = AtomicReference(0.0)
+  private val throughput = Throughput.Printer("Load")
+  private var throughputSuccess = Throughput.Printer("Success")
 
   protected fun onGameCommand(command: GameCommand) {
     when (command.type) {
@@ -54,23 +58,23 @@ abstract class BaseCatapult(protected val id: String, private val colorize: (Dou
 
   abstract suspend fun makeNoise(noise: Noise)
 
-  suspend fun load(blockingWrapper: suspend (blockingCode: (v: Double?) -> Double) -> Double?): Double? {
+  fun load(v: Double?): Double? {
     if (isPaused) {
       println("Loading aborted (paused)")
-      return gauge.get()
+      return null
     }
+    throughput.mark()
     if (isLoading.getAndSet(true)) {
       println("Loading aborted (not ready)")
-      return gauge.get()
+      return null
     }
     // Do something CPU intensive
-    return blockingWrapper(fun(v: Double?): Double {
-//      Thread.sleep(1000)
-      val d = tan(atan(tan(atan(v ?: 0.0))))
-      gauge.add(LOAD_FACTOR)
-      isLoading.set(false)
-      return gauge.get()
-    })
+    val d = tan(atan(tan(atan(v ?: 0.0))))
+    computedValue.set(d)
+    gauge.add(LOAD_FACTOR)
+    isLoading.set(false)
+    throughputSuccess.mark()
+    return gauge.get()
   }
 
   // listen to noise; when target seems more interesting than the current one, take it instead

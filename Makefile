@@ -1,4 +1,5 @@
 VERSION := 0.0.1
+STRIMZI_VERSION := 0.16.0
 # List of all services (for image building / deploying)
 SERVICES ?= ui-hotspot villains-oj9
 # Kube's CLI (kubectl or oc)
@@ -37,8 +38,8 @@ docker:
 
 deploy-kafka:
 	${K8S_BIN} create namespace kafka
-	curl -L https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.15.0/strimzi-cluster-operator-0.15.0.yaml | sed 's/namespace: .*/namespace: kafka/'   | ${K8S_BIN} apply -f - -n kafka
-	${K8S_BIN} apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/0.15.0/examples/kafka/kafka-persistent-single.yaml -n kafka
+	curl -L https://github.com/strimzi/strimzi-kafka-operator/releases/download/${STRIMZI_VERSION}/strimzi-cluster-operator-${STRIMZI_VERSION}.yaml | sed 's/namespace: .*/namespace: kafka/'   | ${K8S_BIN} apply -f - -n kafka
+	${K8S_BIN} apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/${STRIMZI_VERSION}/examples/kafka/kafka-persistent-single.yaml -n kafka
 
 deploy-minikube: .ensure-yq
 	for svc in ${SERVICES} ; do \

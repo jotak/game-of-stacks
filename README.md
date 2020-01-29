@@ -71,3 +71,9 @@ Next steps:
 - Need dockerfiles/images for quarkus; graal and hotspot/oj9
 - New weapon: Bow/arrow; triggered as a process with known target (sysprops/env)
 - Prettify game (graphics / sprites)
+
+## Istio
+
+kubectl label namespace default istio-injection=enabled
+
+
