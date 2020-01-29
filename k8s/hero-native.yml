@@ -4,25 +4,25 @@ metadata:
   labels:
     project: gos
     app: hero
-    version: v1
+    version: v1-native
   name: hero
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: hero
-      version: v1
+      version: v1-native
   template:
     metadata:
       labels:
         project: gos
         app: hero
-        version: v1
+        version: v1-native
     spec:
       containers:
-      - image: localhost:5000/jotak/gos-hero-hotspot:dev
+      - image: localhost:5000/jotak/gos-hero-native:dev
         imagePullPolicy: IfNotPresent
-        name: hero
+        name: hero-native
         ports:
         - containerPort: 8080
           name: http

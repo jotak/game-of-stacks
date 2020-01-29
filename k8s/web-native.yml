@@ -3,28 +3,28 @@ kind: Deployment
 metadata:
   labels:
     project: gos
-    app: hero
-    version: v1
-  name: hero
+    app: web
+    version: v1-native
+  name: web
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: hero
-      version: v1
+      app: web
+      version: v1-native
   template:
     metadata:
       labels:
         project: gos
-        app: hero
-        version: v1
+        app: web
+        version: v1-native
     spec:
       containers:
-      - image: localhost:5000/jotak/gos-hero-hotspot:dev
+      - image: localhost:5000/jotak/gos-web-native:dev
         imagePullPolicy: IfNotPresent
-        name: hero
+        name: web-native
         ports:
-        - containerPort: 8080
+        - containerPort: 8081
           name: http
           protocol: TCP
         env:
@@ -40,13 +40,13 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: hero
+  name: web
   labels:
     project: gos
-    app: hero
+    app: web
 spec:
   ports:
     - name: http
-      port: 8080
+      port: 8081
   selector:
-    app: hero
+    app: web
