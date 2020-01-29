@@ -1,7 +1,7 @@
 VERSION := 0.0.1
 STRIMZI_VERSION := 0.16.0
 # List of all services (for image building / deploying)
-SERVICES ?= ui-hotspot villains-oj9
+SERVICES ?= web-hotspot villains-oj9
 # Kube's CLI (kubectl or oc)
 K8S_BIN ?= $(shell which kubectl 2>/dev/null || which oc 2>/dev/null)
 # OCI CLI (docker or podman)
@@ -64,7 +64,7 @@ endif
 
 expose:
 	@echo "URL: http://localhost:8081/"
-	${K8S_BIN} port-forward svc/ui 8081:8081
+	${K8S_BIN} port-forward svc/web 8081:8081
 
 undeploy:
 	${K8S_BIN} delete all -l project=gos

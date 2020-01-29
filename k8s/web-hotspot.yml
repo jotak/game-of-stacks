@@ -3,29 +3,24 @@ kind: Deployment
 metadata:
   labels:
     project: gos
-    app: ui
+    app: web
     version: v1
-  name: ui
+  name: web
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ui
+      app: web
       version: v1
   template:
     metadata:
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/scheme: "http"
-        prometheus.io/port: "9090"
-#        status.sidecar.istio.io/port: "0"
       labels:
         project: gos
-        app: ui
+        app: web
         version: v1
     spec:
       containers:
-      - image: localhost:5000/jotak/gos-hotspot-ui:dev
+      - image: localhost:5000/jotak/gos-web-hotspot:dev
         imagePullPolicy: IfNotPresent
         name: ui
         ports:
@@ -37,22 +32,8 @@ spec:
           value: "0"
         - name: TRACING_ENABLED
           value: "0"
-        - name: AB_OFF
-          value: "1"
-        - name: JAVA_OPTIONS
-          value: "-Dvertx.disableDnsResolver=true"
-        - name: KAFKA_ADDRESS
+        - name: KAFKA_BOOTSTRAP_SERVERS
           value: my-cluster-kafka-bootstrap.kafka:9092
-        - name: JAEGER_SERVICE_NAME
-          value: ui
-        - name: JAEGER_SAMPLER_TYPE
-          value: const
-        - name: JAEGER_SAMPLER_PARAM
-          value: "1"
-        - name: JAEGER_PROPAGATION
-          value: b3
-        - name: JAEGER_ENDPOINT
-          value: http://jaeger-collector.istio-system.svc:14268/api/traces
         securityContext:
           privileged: false
         readinessProbe:
@@ -67,13 +48,13 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: ui
+  name: web
   labels:
     project: gos
-    app: ui
+    app: web
 spec:
   ports:
     - name: http
       port: 8081
   selector:
-    app: ui
+    app: web
