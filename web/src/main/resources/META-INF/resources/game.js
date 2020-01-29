@@ -1,4 +1,5 @@
 const type = PIXI.utils.isWebGLSupported() ? "WebGL" : "canvas";
+PIXI.settings.SPRITE_MAX_TEXTURES = Math.min(PIXI.settings.SPRITE_MAX_TEXTURES , 16);
 const app = new PIXI.Application({
     width: window.innerWidth,
     height: window.innerHeight,
