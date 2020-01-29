@@ -1,4 +1,4 @@
-FROM fabric8/java-alpine-openjdk8-jre
+FROM adoptopenjdk/openjdk8:alpine-slim
 
 EXPOSE 8081 9090
 
@@ -11,8 +11,6 @@ EXPOSE 8081 9090
 # Temp: fat jar
 COPY catapult-vertx/target/gos-catapult-vertx-0.0.1-runner.jar /deployment/
 
-ENV JAVA_APP_DIR=/deployment
-ENV JAVA_LIB_DIR=/deployment
-ENV JAVA_CLASSPATH=${JAVA_LIB_DIR}/gos-catapult-vertx-0.0.1-runner.jar
-ENV JAVA_MAIN_CLASS="demo.gos.catapult.CatapultVerticle"
-RUN chgrp -R 0 ${JAVA_APP_DIR} && chmod -R g+rwX ${JAVA_APP_DIR}
+RUN chgrp -R 0 /deployment && chmod -R g+rwX /deployment
+
+CMD java -Dvertx.disableDnsResolver=true -jar /deployment/gos-catapult-vertx-0.0.1-runner.jar

@@ -68,12 +68,10 @@ $ docker build -f src/main/docker/Dockerfile.native -t hero-native .
 
 Next steps:
 - Have a blocking i/o catapult?
-- Need dockerfiles/images for quarkus; graal and hotspot/oj9
 - New weapon: Bow/arrow; triggered as a process with known target (sysprops/env)
-- Prettify game (graphics / sprites)
+- Differentiate sprites with text (e.g. graal/hotspot)
 
 ## Istio
 
 kubectl label namespace default istio-injection=enabled
-
 

@@ -30,6 +30,7 @@ val colorize = fun(gauge: Double): String {
 }
 
 class CatapultVerticle : CoroutineVerticle() {
+
   private lateinit var cata: Catapult
 
   override suspend fun start() {
