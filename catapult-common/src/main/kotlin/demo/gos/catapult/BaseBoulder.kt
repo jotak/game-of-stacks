@@ -36,7 +36,7 @@ abstract class BaseBoulder(private val id: String, initPos: Point, private val d
   abstract suspend fun display(data: DisplayData)
 
   private suspend fun display() {
-    val action = if (exploding) "explode" else null
-    display(DisplayData(id = id, x = curPos.x(), y = curPos.y(), sprite = "boulder", action = action))
+    val sprite = if (exploding) "explode" else "boulder"
+    display(DisplayData(id = id, x = curPos.x(), y = curPos.y(), sprite = sprite))
   }
 }

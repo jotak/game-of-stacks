@@ -16,13 +16,6 @@ eb.onopen = function () {
     console.log('removeGameObject');
     removeGameObject(msg.body);
   });
-
-  eb.send("init-session", "", function (err, msg) {
-    msg.body.forEach(function(obj) {
-      console.log('init-session:' + obj.id);
-      displayGameObject(obj);
-    });
-  });
 };
 
 eb.onreconnect = function() {

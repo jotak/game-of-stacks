@@ -33,6 +33,14 @@ app.ticker.add(function (delta) {
     PIXI.tweenManager.update();
 });
 
+function putInDirection(sprite, prevX, newX) {
+    if(prevX > newX) {
+        sprite.scale.x = -1;
+    } else {
+        sprite.scale.x = 1;
+    }
+}
+
 function explode(x, y) {
     const mc = new PIXI.extras.MovieClip(explosion);
     mc.position.x = x;
@@ -65,16 +73,23 @@ function displayGameObject(obj) {
     }
     if (elements[obj.id]) {
         const el = elements[obj.id];
-        if (el.spriteName != obj.sprite) {
+        if(!obj.sprite) {
+            removeGameObject(obj);
+        } else if (el.spriteName != obj.sprite) {
             console.log(`Updating ${obj.id} with sprite ${obj.sprite}`)
             app.stage.removeChild(el.sprite);
-            el.sprite = new PIXI.Sprite(players[obj.sprite + ".png"]);
-            el.spriteName = obj.sprite;
-            el.sprite.x = obj.x;
-            el.sprite.y = obj.y;
-            app.stage.addChild(el.sprite);
+            if (obj.sprite === "explode") {
+                explode(obj.x, obj.y);
+            } else {
+                el.sprite = new PIXI.Sprite(players[obj.sprite + ".png"]);
+                el.spriteName = obj.sprite;
+                el.sprite.x = obj.x;
+                el.sprite.y = obj.y;
+                app.stage.addChild(el.sprite);
+            }            
         } else {
             //console.log(`Updating ${obj.id}`)
+            putInDirection(el.sprite, el.sprite.x, obj.x);
             var tween = PIXI.tweenManager.createTween(el.sprite);
             tween.time = 1000;
             tween.easing = PIXI.tween.Easing.linear();
@@ -88,16 +103,14 @@ function displayGameObject(obj) {
             });
             tween.start();
         }
-        if (obj.action === "explode") {
-            console.log("explode!!!!!!!!!!!!!!!!!!!!!!")
-            removeGameObject(obj);
-            explode(obj.x, obj.y);
-        }
+        
     } else {
         const sprite = new PIXI.Sprite(players[obj.sprite + ".png"]);
         console.log(`Creating object ${obj.id} with sprite ${obj.sprite}`)
         sprite.x = obj.x;
         sprite.y = obj.y;
+        sprite.anchor.x = 0.5;
+        sprite.anchor.y = 0.5;
         elements[obj.id] = {
             spriteName: obj.sprite,
             sprite,
