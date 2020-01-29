@@ -1,5 +1,5 @@
 const type = PIXI.utils.isWebGLSupported() ? "WebGL" : "canvas";
-PIXI.settings.SPRITE_MAX_TEXTURES = Math.min(PIXI.settings.SPRITE_MAX_TEXTURES , 16);
+PIXI.settings.SPRITE_MAX_TEXTURES = Math.min(PIXI.settings.SPRITE_MAX_TEXTURES, 16);
 const app = new PIXI.Application({
     width: window.innerWidth,
     height: window.innerHeight,
@@ -21,6 +21,13 @@ PIXI.loader
     .add('assets/images/explosion.json')
     .load(() => {
         players = PIXI.loader.resources["assets/images/players.json"].textures;
+        /*
+        //Show list of players
+        const list = [];
+        for(player in players) {
+            list.push(`"${player.replace(".png", "")}"`);
+        }
+        console.log(list.join(", "));*/
 
         // Explosion
         for (let i = 1; i <= 26; i++) {
@@ -34,7 +41,7 @@ app.ticker.add(function (delta) {
 });
 
 function putInDirection(sprite, prevX, newX) {
-    if(prevX > newX) {
+    if (prevX > newX) {
         sprite.scale.x = -1;
     } else {
         sprite.scale.x = 1;
@@ -51,7 +58,7 @@ function explode(x, y) {
     mc.animationSpeed = 0.6;
     mc.rotation = Math.random() * Math.PI;
     mc.scale.set(0.75 + Math.random() * 0.5);
-    mc.onComplete = function() { app.stage.removeChild(mc); };
+    mc.onComplete = function () { app.stage.removeChild(mc); };
     mc.play();
     app.stage.addChild(mc);
 }
@@ -73,7 +80,7 @@ function displayGameObject(obj) {
     }
     if (elements[obj.id]) {
         const el = elements[obj.id];
-        if(!obj.sprite) {
+        if (!obj.sprite) {
             removeGameObject(obj);
         } else if (el.spriteName != obj.sprite) {
             console.log(`Updating ${obj.id} with sprite ${obj.sprite}`)
@@ -86,7 +93,7 @@ function displayGameObject(obj) {
                 el.sprite.x = obj.x;
                 el.sprite.y = obj.y;
                 app.stage.addChild(el.sprite);
-            }            
+            }
         } else {
             //console.log(`Updating ${obj.id}`)
             putInDirection(el.sprite, el.sprite.x, obj.x);
@@ -103,7 +110,7 @@ function displayGameObject(obj) {
             });
             tween.start();
         }
-        
+
     } else {
         const sprite = new PIXI.Sprite(players[obj.sprite + ".png"]);
         console.log(`Creating object ${obj.id} with sprite ${obj.sprite}`)

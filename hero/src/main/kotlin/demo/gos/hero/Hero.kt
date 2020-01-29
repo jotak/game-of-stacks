@@ -28,11 +28,8 @@ class Hero {
         val timer = Timer()
         val LOG: Logger = Logger.getLogger(Hero::class.java.name)
         const val DELTA_MS = 1000L
-        val HEROES = mapOf(
-                "aria" to "Aria-Stark",
-                "ned" to "Ned-Stark",
-                "jon" to "Jon-Snow",
-                "deany" to "Daenerys-Targaryen"
+        val HEROES = listOf(
+                "aria-stark", "bran-stark", "catapult", "catelyn-stark", "cersei-lannister", "daenerys-targaryen", "davos-seaworth", "gendry", "jaime-lannister", "jeor-mormont", "jon-snow", "kal-drogo", "lady-brynne", "little-finger", "margeary-tyrell", "melisandre", "ned-stark", "prince-joffrey", "rickon-stark", "robb-stark", "robert-barratheon", "sansa-stark", "stannis-barratheon", "the-dog", "theon-greyjoy", "tyrion-lannister", "tywin-lannister", "varys", "ygritte"
         )
     }
 
@@ -44,8 +41,8 @@ class Hero {
     @ConfigProperty(name = "Y")
     lateinit var Y: Optional<Double>
 
-    @ConfigProperty(name = "shortId", defaultValue = "aria")
-    lateinit var shortId: Provider<String>
+    @ConfigProperty(name = "id")
+    lateinit var configId: Optional<String>
 
     @ConfigProperty(name = "accuracy", defaultValue = "0.7")
     lateinit var accuracy: Provider<Double>
@@ -181,7 +178,7 @@ class Hero {
     }
 
     private fun reset() {
-        id = HEROES.getValue(shortId.get())
+        id = configId.orElse(HEROES.random())
         paused.set(false)
         dead.set(false)
         position.set(GameObjects.startingPoint(RND, Areas.spawnHeroesArea, X.orElse(null), Y.orElse(null)))

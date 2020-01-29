@@ -82,7 +82,7 @@ start-catapult-quarkus:
 	export Y="350" && java -jar ./catapult-quarkus/target/gos-catapult-quarkus-${VERSION}-runner.jar
 
 start-ned:
-	export Y="150" speed="70" shortId="ned" && java -jar ./hero/target/gos-hero-${VERSION}-runner.jar
+	export Y="150" speed="70" id="ned-stark" && java -jar ./hero/target/gos-hero-${VERSION}-runner.jar
 
 dev-web:
 	cd web && mvn compile quarkus:dev
@@ -91,10 +91,10 @@ start-web:
 	java -jar ./web/target/gos-web-${VERSION}-runner.jar
 
 start-aria:
-	export Y="350" speed="70" shortId="aria" && java -jar ./hero/target/gos-hero-${VERSION}-runner.jar
+	export Y="350" speed="70" id="aria-stark" && java -jar ./hero/target/gos-hero-${VERSION}-runner.jar
 
 start-kafka:
 	cd kafka; docker-compose up
 
 start:
-	make -j5 start-villains start-catapult-vertx start-catapult-quarkus start-ned start-aria
+	make -j5 start-villains start-catapult-vertx start-catapult-quarkus start-aria start-ned
