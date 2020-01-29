@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    project: gos
+    app: catapult
+    runtime: vertx
+    version: v1-vertx
+  name: catapult-vertx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: catapult
+      runtime: vertx
+      version: v1-vertx
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/scheme: "http"
+        prometheus.io/port: "9090"
+      labels:
+        app: catapult
+        runtime: vertx
+        version: v1-vertx
+    spec:
+      containers:
+        - image: localhost:5000/jotak/gos-catapult-vertx-hotspot:dev
+          imagePullPolicy: IfNotPresent
+          name: catapult-vertx
+          ports:
+            - containerPort: 8081
+              name: http
+              protocol: TCP
+          env:
+            - name: METRICS_ENABLED
+              value: "0"
+            - name: TRACING_ENABLED
+              value: "0"
+            - name: AB_OFF
+              value: "1"
+            - name: JAVA_OPTIONS
+              value: "-Dvertx.disableDnsResolver=true"
+            - name: KAFKA_ADDRESS
+              value: my-cluster-kafka-bootstrap.kafka:9092
+          securityContext:
+            privileged: false
+#          readinessProbe:
+#            exec:
+#              command:
+#                - curl
+#                - localhost:8081/health
+#            initialDelaySeconds: 10
+#            periodSeconds: 5
+#            timeoutSeconds: 1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: catapult
+  labels:
+    project: gos
+    app: catapult
+    runtime: vertx
+spec:
+  ports:
+    - name: http
+      port: 8081
+  selector:
+    app: catapult

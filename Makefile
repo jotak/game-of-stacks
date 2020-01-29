@@ -1,7 +1,7 @@
 VERSION := 0.0.1
 STRIMZI_VERSION := 0.16.0
 # List of all services (for image building / deploying)
-SERVICES ?= web-hotspot villains-oj9
+SERVICES ?= web-hotspot villains-oj9 catapult-vertx-hotspot
 # Kube's CLI (kubectl or oc)
 K8S_BIN ?= $(shell which kubectl 2>/dev/null || which oc 2>/dev/null)
 # OCI CLI (docker or podman)
