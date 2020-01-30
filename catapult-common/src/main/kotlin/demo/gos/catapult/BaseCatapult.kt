@@ -19,10 +19,11 @@ val ACCURACY = Commons.getDoubleEnv("ACCURACY", 0.9)
 val SHOT_RANGE = Commons.getDoubleEnv("SHOT_RANGE", 400.0)
 val SPEED = Commons.getDoubleEnv("SPEED", 110.0)
 val IMPACT_ZONE = Commons.getDoubleEnv("IMPACT_ZONE", 75.0)
-val RND = SecureRandom()
+
 
 abstract class BaseCatapult(protected val id: String, private val colorize: (Double) -> String) {
-  private val pos = GameObjects.startingPoint(RND, Areas.spawnWeaponArea, X, Y)
+  private val rnd = SecureRandom()
+  private val pos = GameObjects.startingPoint(rnd, Areas.spawnWeaponArea, X, Y)
   private var boulders = mutableListOf<BaseBoulder>()
   private var target: Noise? = null
   private var gauge = Gauge(1.0, fun() { shoot() })
@@ -90,7 +91,7 @@ abstract class BaseCatapult(protected val id: String, private val colorize: (Dou
         val currentStrength = currentTarget.strength(pos)
         val newStrength = noise.strength(pos)
         // 5% chances to get attention
-        if (newStrength > currentStrength && RND.nextInt(100) < 5) {
+        if (newStrength > currentStrength && rnd.nextInt(100) < 5) {
           target = noise
         }
       }
@@ -101,8 +102,8 @@ abstract class BaseCatapult(protected val id: String, private val colorize: (Dou
     val t = target
     if (t != null) {
       // Accuracy modifier
-      var angle = RND.nextDouble() * (1.0 - ACCURACY) * Math.PI
-      if (RND.nextInt(2) == 0) {
+      var angle = rnd.nextDouble() * (1.0 - ACCURACY) * Math.PI
+      if (rnd.nextInt(2) == 0) {
         angle *= -1
       }
       // Is in range?

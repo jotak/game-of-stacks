@@ -88,7 +88,7 @@ function displayGameObject(obj) {
         if (!obj.sprite) {
             removeGameObject(obj);
         } else if (el.spriteName != obj.sprite) {
-            console.log(`Updating ${obj.id} with sprite ${obj.sprite}`)
+            console.log(`Updating ${obj.id} with sprite ${obj.sprite} at ${obj.x}, ${obj.y}`)
             app.stage.removeChild(el.sprite);
             if (obj.sprite === "explode") {
                 explode(obj.x, obj.y);
@@ -102,23 +102,26 @@ function displayGameObject(obj) {
         } else {
             //console.log(`Updating ${obj.id}`)
             putInDirection(el.sprite, el.sprite.x, obj.x);
-            var tween = PIXI.tweenManager.createTween(el.sprite);
-            tween.time = 1000;
-            tween.easing = PIXI.tween.Easing.linear();
-            tween.from({
+            if(!el.tween) {
+                el.tween = PIXI.tweenManager.createTween(el.sprite);
+                el.tween.time = 1000;
+                el.tween.easing = PIXI.tween.Easing.linear();
+            } 
+            el.tween.reset();
+            el.tween.from({
                 x: el.sprite.x,
                 y: el.sprite.y
             });
-            tween.to({
+            el.tween.to({
                 x: obj.x,
                 y: obj.y
             });
-            tween.start();
+            el.tween.start();
         }
 
     } else {
         const sprite = new PIXI.Sprite(players[obj.sprite + ".png"]);
-        console.log(`Creating object ${obj.id} with sprite ${obj.sprite}`)
+        console.log(`Creating object ${obj.id} with sprite ${obj.sprite} at ${obj.x}, ${obj.y}`)
         sprite.x = obj.x;
         sprite.y = obj.y;
         sprite.anchor.x = 0.5;

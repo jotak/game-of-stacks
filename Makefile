@@ -1,7 +1,7 @@
 VERSION := 0.0.1
 STRIMZI_VERSION := 0.16.0
 # List of all services (for image building / deploying)
-SERVICES ?= web-hotspot villains-oj9 hero-hotspot catapult-vertx-hotspot
+SERVICES ?= web-hotspot villains-oj9 hero-native catapult-vertx-hotspot
 # Kube's CLI (kubectl or oc)
 K8S_BIN ?= $(shell which kubectl 2>/dev/null || which oc 2>/dev/null)
 # OCI CLI (docker or podman)
@@ -33,7 +33,7 @@ test:
 
 docker:
 	for svc in ${SERVICES} ; do \
-		${OCI_BIN} build -t ${OCI_DOMAIN}/${USER}/gos-$$svc:${OCI_TAG} -f ./k8s/$$svc.dockerfile ./ ; \
+		${OCI_BIN} build -t ${OCI_DOMAIN}/jotak/gos-$$svc:${OCI_TAG} -f ./k8s/$$svc.dockerfile ./ ; \
 	done
 
 deploy-kafka:
@@ -43,11 +43,11 @@ deploy-kafka:
 
 deploy-minikube: .ensure-yq
 	for svc in ${SERVICES} ; do \
-		${OCI_BIN} tag ${OCI_DOMAIN}/${USER}/gos-$$svc:${OCI_TAG} localhost:5000/${USER}/gos-$$svc:${OCI_TAG} ; \
-		${OCI_BIN} push ${PUSH_OPTS} ${OCI_DOMAIN}/${USER}/gos-$$svc:${OCI_TAG} ; \
+		${OCI_BIN} tag ${OCI_DOMAIN}/jotak/gos-$$svc:${OCI_TAG} localhost:5000/jotak/gos-$$svc:${OCI_TAG} ; \
+		${OCI_BIN} push ${PUSH_OPTS} ${OCI_DOMAIN}/jotak/gos-$$svc:${OCI_TAG} ; \
 		cat k8s/$$svc.yml \
 			| yq w - spec.template.spec.containers[0].imagePullPolicy Always \
-			| yq w - spec.template.spec.containers[0].image localhost:5000/${USER}/gos-$$svc:${OCI_TAG} \
+			| yq w - spec.template.spec.containers[0].image localhost:5000/jotak/gos-$$svc:${OCI_TAG} \
 			| kubectl apply -f - ; \
 	done
 

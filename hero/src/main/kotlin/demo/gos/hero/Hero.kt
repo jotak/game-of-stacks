@@ -25,14 +25,14 @@ import kotlin.concurrent.scheduleAtFixedRate
 @Singleton
 class Hero {
     companion object {
-        val timer = Timer()
         val LOG: Logger = Logger.getLogger(Hero::class.java.name)
         const val DELTA_MS = 1000L
         val HEROES = listOf(
-                "aria-stark", "bran-stark", "catapult", "catelyn-stark", "cersei-lannister", "daenerys-targaryen", "davos-seaworth", "gendry", "jaime-lannister", "jeor-mormont", "jon-snow", "kal-drogo", "lady-brynne", "little-finger", "margeary-tyrell", "melisandre", "ned-stark", "prince-joffrey", "rickon-stark", "robb-stark", "robert-barratheon", "sansa-stark", "stannis-barratheon", "the-dog", "theon-greyjoy", "tyrion-lannister", "tywin-lannister", "varys", "ygritte"
+                "aria-stark", "bran-stark", "catelyn-stark", "cersei-lannister", "daenerys-targaryen", "davos-seaworth", "gendry", "jaime-lannister", "jeor-mormont", "jon-snow", "kal-drogo", "lady-brynne", "little-finger", "margeary-tyrell", "melisandre", "ned-stark", "prince-joffrey", "rickon-stark", "robb-stark", "robert-barratheon", "sansa-stark", "stannis-barratheon", "the-dog", "theon-greyjoy", "tyrion-lannister", "tywin-lannister", "varys", "ygritte"
         )
     }
 
+    val timer = Timer()
     val RND = SecureRandom()
 
     @ConfigProperty(name = "X")
@@ -178,7 +178,7 @@ class Hero {
     }
 
     private fun reset() {
-        id = configId.orElse(HEROES.random())
+        id = configId.orElse(HEROES[RND.nextInt(HEROES.size)])
         paused.set(false)
         dead.set(false)
         position.set(GameObjects.startingPoint(RND, Areas.spawnHeroesArea, X.orElse(null), Y.orElse(null)))

@@ -23,7 +23,7 @@ import kotlin.concurrent.scheduleAtFixedRate
 @Singleton
 class CatapultQuarkus : BaseCatapult("CATA-Q-" + UUID.randomUUID().toString(), colorize) {
   companion object {
-    val timer = Timer()
+
     const val DELTA_MS = 1000L
 
     val colorize = fun(gauge: Double): String {
@@ -31,7 +31,7 @@ class CatapultQuarkus : BaseCatapult("CATA-Q-" + UUID.randomUUID().toString(), c
       return "rgb($red,0,128)"
     }
   }
-
+  val timer = Timer()
   private val initialized = AtomicBoolean(false)
 
   @Inject
