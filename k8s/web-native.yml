@@ -14,6 +14,9 @@ spec:
       version: v1-native
   template:
     metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/scheme: "http"
       labels:
         project: gos
         app: web
@@ -28,10 +31,6 @@ spec:
           name: http
           protocol: TCP
         env:
-        - name: METRICS_ENABLED
-          value: "0"
-        - name: TRACING_ENABLED
-          value: "0"
         - name: KAFKA_BOOTSTRAP_SERVERS
           value: my-cluster-kafka-bootstrap.kafka:9092
         securityContext:

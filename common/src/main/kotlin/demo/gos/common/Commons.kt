@@ -1,7 +1,7 @@
 package demo.gos.common
 
 object Commons {
-  private val metricsEnabled = getIntEnv("METRICS_ENABLED", 0)
+  @JvmStatic val metricsEnabled = getIntEnv("METRICS_ENABLED", 0)
   @JvmStatic val kafkaAddress = getStringEnv("KAFKA_ADDRESS", "localhost:9092")
   @JvmStatic val kafkaConfigProducer: Map<String, String> = mapOf(
     "bootstrap.servers" to kafkaAddress,

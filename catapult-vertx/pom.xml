@@ -20,6 +20,7 @@
 
     <vertx.version>3.8.4</vertx.version>
 
+    <main.launcher>demo.gos.catapult.Launcher</main.launcher>
     <main.verticle>demo.gos.catapult.CatapultVerticle</main.verticle>
   </properties>
 
@@ -64,6 +65,15 @@
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-kafka-client</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-micrometer-metrics</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+      <version>1.1.0</version>
     </dependency>
     <dependency>
       <groupId>demo.gos</groupId>
@@ -111,7 +121,7 @@
                 <transformer
                   implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <manifestEntries>
-                    <Main-Class>io.vertx.core.Launcher</Main-Class>
+                    <Main-Class>${main.launcher}</Main-Class>
                     <Main-Verticle>${main.verticle}</Main-Verticle>
                   </manifestEntries>
                 </transformer>

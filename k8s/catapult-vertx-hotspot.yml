@@ -12,7 +12,6 @@ spec:
   selector:
     matchLabels:
       app: catapult
-      runtime: vertx
       version: v1-vertx
   template:
     metadata:
@@ -21,6 +20,7 @@ spec:
         prometheus.io/scheme: "http"
         prometheus.io/port: "9090"
       labels:
+        project: gos
         app: catapult
         runtime: vertx
         version: v1-vertx
@@ -35,7 +35,7 @@ spec:
               protocol: TCP
           env:
             - name: METRICS_ENABLED
-              value: "0"
+              value: "1"
             - name: TRACING_ENABLED
               value: "0"
             - name: AB_OFF
@@ -62,7 +62,6 @@ metadata:
   labels:
     project: gos
     app: catapult
-    runtime: vertx
 spec:
   ports:
     - name: http
