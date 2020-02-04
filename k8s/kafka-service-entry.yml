@@ -5,7 +5,7 @@ metadata:
 spec:
   hosts:
           #    - my-cluster-kafka-0.my-cluster-kafka-brokers.kafka
-    - my-cluster-kafka-brokers.kafka
+    - my-cluster-kafka-brokers
   ports:
     - name: tcp-replication
       number: 9091

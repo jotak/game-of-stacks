@@ -5,7 +5,7 @@ metadata:
     project: gos
     app: hero
     version: v1-native
-  name: hero
+  name: hero-native
 spec:
   replicas: 1
   selector:
@@ -14,6 +14,9 @@ spec:
       version: v1-native
   template:
     metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/scheme: "http"
       labels:
         project: gos
         app: hero

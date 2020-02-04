@@ -33,7 +33,7 @@ spec:
               protocol: TCP
           env:
             - name: METRICS_ENABLED
-              value: "0"
+              value: "1"
             - name: TRACING_ENABLED
               value: "0"
             - name: AB_OFF
@@ -42,6 +42,8 @@ spec:
               value: "-Dvertx.disableDnsResolver=true"
             - name: KAFKA_ADDRESS
               value: my-cluster-kafka-bootstrap.kafka:9092
+            - name: WAVES_SIZE
+              value: "4"
           securityContext:
             privileged: false
 #          readinessProbe:

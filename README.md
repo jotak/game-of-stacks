@@ -37,10 +37,10 @@ Assuming minikube is up and running
 make deploy-kafka
 
 # Build GoS
-make clean build
+make clean build build-native
 
 # Build docker images & deploy
-MINIKUBE=true make docker deploy
+MINIKUBE=true make docker push deploy
 
 # Expose (port-forward)
 make expose

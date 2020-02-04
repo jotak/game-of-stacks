@@ -43,18 +43,11 @@ class CatapultVerticle : CoroutineVerticle() {
 //    vertx.createHttpServer().requestHandler(router).listenAwait(PORT)
 //    LOGGER.info("HTTPS server started on port $PORT")
   }
-
-  override suspend fun stop() {
-    println("stopping parent")
-    super.stop()
-    cata.running = false
-  }
 }
 
 class Catapult(private val vertx: Vertx, id: String)
     : BaseCatapult(id, colorize) {
   private val kafkaProducer = KafkaProducer.create<String, JsonObject>(vertx, Commons.kafkaConfigProducer)
-  var running = true
 
   init {
     KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
