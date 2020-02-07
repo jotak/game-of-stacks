@@ -13,14 +13,13 @@ import kotlinx.coroutines.runBlocking
 import org.eclipse.microprofile.reactive.messaging.Incoming
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
+import javax.enterprise.context.ApplicationScoped
 import javax.enterprise.event.Observes
 import javax.inject.Inject
-import javax.inject.Singleton
 import kotlin.concurrent.scheduleAtFixedRate
 
 
-// TODO: handle /load http handler
-@Singleton
+@ApplicationScoped
 class CatapultQuarkus : BaseCatapult("CATA-Q-" + UUID.randomUUID().toString(), colorize) {
   companion object {
 
@@ -79,7 +78,7 @@ class CatapultQuarkus : BaseCatapult("CATA-Q-" + UUID.randomUUID().toString(), c
     listenToVillains(o.mapTo(Noise::class.java))
   }
 
-  @Incoming("load-catapult")
+  @Incoming("load-weapon")
   fun loadCatapult(o: JsonObject) {
     if(!initialized.get()) {
       return

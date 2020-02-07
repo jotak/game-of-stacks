@@ -45,7 +45,7 @@ app.ticker.add(function (delta) {
 function putInDirection(sprite, prevX, newX) {
     if (prevX > newX) {
         sprite.scale.x = -1;
-    } else {
+    } else if(prevX < newX) {
         sprite.scale.x = 1;
     }
 }
@@ -126,6 +126,7 @@ function displayGameObject(obj) {
         sprite.y = obj.y;
         sprite.anchor.x = 0.5;
         sprite.anchor.y = 0.5;
+        sprite.scale.x = -1;
         elements[obj.id] = {
             id: obj.id,
             spriteName: obj.sprite,

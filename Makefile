@@ -20,6 +20,8 @@ endif
 .ensure-yq:
 	@command -v yq >/dev/null 2>&1 || { echo >&2 "yq is required. Grab it on https://github.com/mikefarah/yq"; exit 1; }
 
+NAME ?= hero
+
 clean:
 	mvn clean
 
@@ -29,7 +31,7 @@ install:
 	mvn install -DskipTests
 
 build-native:
-	mvn package -f hero/pom.xml -Pnative -DskipTests
+	mvn package -f ${NAME}/pom.xml -Pnative -Dquarkus.native.container-build=true -DskipTests
 
 test:
 	mvn test
@@ -96,7 +98,7 @@ start-catapult-quarkus:
 	export Y="350" && java -jar ./catapult-quarkus/target/gos-catapult-quarkus-${VERSION}-runner.jar
 
 start-ned:
-	export Y="150" speed="70" id="ned-stark" && java -jar ./hero/target/gos-hero-${VERSION}-runner.jar
+	export Y="150" SPEED="70" ID="ned-stark" USE_BOW="true" && java -jar ./hero/target/gos-hero-${VERSION}-runner.jar
 
 dev-web:
 	cd web && mvn compile quarkus:dev
@@ -105,10 +107,16 @@ start-web:
 	java -jar ./web/target/gos-web-${VERSION}-runner.jar
 
 start-aria:
-	export Y="350" speed="70" id="aria-stark" && java -jar ./hero/target/gos-hero-${VERSION}-runner.jar
+	export Y="350" SPEED="70" ID="aria-stark" USE_BOW="true" && java -jar ./hero/target/gos-hero-${VERSION}-runner.jar
+
+start-random-hero:
+	unset X Y SPEED ID USE_BOW && java -jar ./hero/target/gos-hero-${VERSION}-runner.jar;
+
+start-arrow:
+	java -jar ./arrow/target/gos-arrow-${VERSION}-runner.jar
 
 start-kafka:
 	cd kafka; docker-compose up
 
 start:
-	make -j5 start-villains start-catapult-vertx start-catapult-quarkus start-aria start-ned
+	make -j7 start-arrow start-villains start-catapult-vertx start-catapult-quarkus start-aria start-ned start-random-hero

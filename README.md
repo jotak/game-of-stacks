@@ -65,6 +65,8 @@ $ docker build -f src/main/docker/Dockerfile.native -t hero-native .
 
 - Docker builds: more layered build (no fat jar)
 - Improve kafka deployment (would be better without shell scripts & curl)
+- Arrow
+- Bow need to be "taken" when a hero uses it?
 
 Next steps:
 - Have a blocking i/o catapult?
