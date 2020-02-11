@@ -51,7 +51,7 @@ class Hero {
     @ConfigProperty(name = "accuracy", defaultValue = "0.7")
     lateinit var accuracy: Provider<Double>
 
-    @ConfigProperty(name = "speed", defaultValue = "35.0")
+    @ConfigProperty(name = "speed", defaultValue = "90.0")
     lateinit var speed: Provider<Double>
 
 

@@ -75,7 +75,7 @@ restart-pods-go:
 	${K8S_BIN} delete pods -l project=gos -l type=game-object
 
 start-villains:
-	export WAVES_DELAY=30 WAVES_SIZE=20 && java -jar ./villains/target/gos-villains-${VERSION}-runner.jar
+	export WAVES_DELAY=10 WAVES_SIZE=20 && java -jar ./villains/target/gos-villains-${VERSION}-runner.jar
 
 start-catapult-vertx:
 	export Y="150" && java -jar ./catapult-vertx/target/gos-catapult-vertx-${VERSION}-runner.jar
