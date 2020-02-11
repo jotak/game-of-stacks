@@ -4,33 +4,91 @@
 <head>
   <title>Game of Stacks</title>
   <style>
+    @font-face {
+      font-family: 'Game Of Thrones';
+      src: url('assets/got.ttf') format('truetype');
+    }
+
     body {
+      font-family: Game Of Thrones;
       margin: 0;
-      background-image: url(assets/images/bg.jpg);
-      background-size: 100% auto;
-      background-repeat: no-repeat;
+      background-color: #111933;
+    }
+
+    h1 {
+      text-align: center;
+      z-index: 2;
     }
 
     #control {
-      z-index: 2;
       position: absolute;
+      bottom: 0;
+      left: 0;
+      padding-left: 2.5px;
+      height: 50px;
+      width: 100%;
+      background-color: #5c5c5c84;
+      z-index: 2;
+    }
+
+    button {
+      display: inline-block;
+      border: none;
+      margin: 5px 2.5px;
+      padding: 0 20px;
+      height: 40px;
+      line-height: 40px;
+      text-decoration: none;
+      background: #3F5591;
+      color: #ffffff;
+      font-family: sans-serif;
+      font-size: 1rem;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.1s ease-in-out;
+      outline: none;
+    }
+
+    button:hover {
+      background: rgb(36, 48, 82);
+    }
+
+    button:active {
+      background: rgb(57, 62, 78);
+    }
+
+    #container {
+      background-image: url(assets/images/bg.jpg);
+      background-repeat: repeat;
+      display: block;
+      position: absolute;
+      left: calc(50% - 512px);
+      top: calc(50% - 384px);
+      width: 1024px;
+      height: 768px;
+      z-index: 1;
     }
 
     canvas {
-      display: block;
       position: absolute;
+      top: 0;
+      left: 0;
       z-index: 1;
     }
   </style>
 </head>
 
 <body>
-  <div id="control">
-    <button type="button" onclick="play()">Play</button>
-    <button type="button" onclick="pause()">Pause</button>
-    <button type="button" onclick="reset()">Reset</button>
+  <div id="container">
+    <h1>GAME OF STACKS</h1>
+    <div id="control">
+      <button type="button" onclick="play()">Play</button>
+      <button type="button" onclick="pause()">Pause</button>
+      <button type="button" onclick="reset()">Reset</button>
+    </div>
   </div>
-  
+
+
   <script src="assets/libs/jquery.min.js"></script>
   <script src="assets/libs/sockjs.min.js"></script>
   <script src="assets/libs/vertx-eventbus.js"></script>

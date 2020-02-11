@@ -1,15 +1,14 @@
 const type = PIXI.utils.isWebGLSupported() ? "WebGL" : "canvas";
 PIXI.settings.SPRITE_MAX_TEXTURES = Math.min(PIXI.settings.SPRITE_MAX_TEXTURES, 16);
 const app = new PIXI.Application({
-    width: window.innerWidth,
-    height: window.innerHeight,
+    width: 1024,
+    height: 768,
     antialias: true,
     resolution: 1,
     transparent: true,
-    autoResize: true,
 });
 
-$("body").append(app.view);
+$("#container").append(app.view);
 
 let elements = {};
 

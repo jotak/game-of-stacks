@@ -4,14 +4,14 @@ metadata:
   labels:
     project: gos
     type: game-object
-    app: hero
+    app: arrow
     version: v1
-  name: hero
+  name: arrow
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: hero
+      app: arrow
       version: v1
   template:
     metadata:
@@ -20,14 +20,13 @@ spec:
         prometheus.io/scheme: "http"
       labels:
         project: gos
-        type: game-object
-        app: hero
+        app: arrow
         version: v1
     spec:
       containers:
-      - image: gos/gos-hero-hotspot:dev
+      - image: gos/gos-arrow-hotspot:dev
         imagePullPolicy: Never
-        name: hero
+        name: arrow
         ports:
         - containerPort: 8080
           name: http
@@ -39,22 +38,21 @@ spec:
           value: "0"
         - name: KAFKA_BOOTSTRAP_SERVERS
           value: my-cluster-kafka-bootstrap.kafka:9092
-        - name: ARROW_API_MP-REST_URL
-          value: bow:8080
+        - name: QUARKUS_HTTP_PORT
+          value: "8080"
         securityContext:
           privileged: false
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: hero
+  name: arrow
   labels:
     project: gos
-    type: game-object
-    app: hero
+    app: arrow
 spec:
   ports:
     - name: http
       port: 8080
   selector:
-    app: hero
+    app: arrow

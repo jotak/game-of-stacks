@@ -17,14 +17,14 @@ import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import java.util.logging.Logger
-import javax.enterprise.context.ApplicationScoped
 import javax.enterprise.event.Observes
 import javax.inject.Inject
 import javax.inject.Provider
+import javax.inject.Singleton
 import kotlin.concurrent.scheduleAtFixedRate
 
 
-@ApplicationScoped
+@Singleton
 class Bow {
     companion object {
         val LOG: Logger = Logger.getLogger(Bow::class.java.name)

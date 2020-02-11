@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   labels:
     project: gos
+    type: game-object
     app: villains
     version: v1
   name: villains
@@ -20,12 +21,13 @@ spec:
         prometheus.io/port: "9090"
       labels:
         project: gos
+        type: game-object
         app: villains
         version: v1
     spec:
       containers:
-        - image: localhost:5000/jotak/gos-villains-oj9:dev
-          imagePullPolicy: IfNotPresent
+        - image: gos/gos-villains-oj9:dev
+          imagePullPolicy: Never
           name: villains
           ports:
             - containerPort: 8081
@@ -61,6 +63,7 @@ metadata:
   name: villains
   labels:
     project: gos
+    type: game-object
     app: villains
 spec:
   ports:

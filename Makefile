@@ -1,7 +1,7 @@
 VERSION := 0.0.1
 STRIMZI_VERSION := 0.16.0
 # List of all services (for image building / deploying)
-SERVICES ?= web-hotspot villains-oj9 hero-hotspot hero-native catapult-vertx-hotspot
+SERVICES ?= web-hotspot villains-oj9 hero-native catapult-vertx-hotspot arrow-native hero-native-with-bow
 # Kube's CLI (kubectl or oc)
 K8S_BIN ?= $(shell which kubectl 2>/dev/null || which oc 2>/dev/null)
 # OCI CLI (docker or podman)
@@ -11,16 +11,13 @@ PUSH_OPTS ?= $(shell if [[ ${OCI_BIN} == *"podman" ]]; then echo "--tls-verify=f
 OCI_TAG ?= dev
 # Set MINIKUBE=true if you want to deploy to minikube (using registry addons)
 MINIKUBE ?= false
-ifeq ($(MINIKUBE),true)
-OCI_DOMAIN ?= "$(shell minikube ip):5000"
-else
-OCI_DOMAIN ?= docker.io
-endif
 
 .ensure-yq:
 	@command -v yq >/dev/null 2>&1 || { echo >&2 "yq is required. Grab it on https://github.com/mikefarah/yq"; exit 1; }
 
 NAME ?= hero
+
+DOCKER_ENV = ""
 
 clean:
 	mvn clean
@@ -31,28 +28,16 @@ install:
 	mvn install -DskipTests
 
 build-native:
-	mvn package -f ${NAME}/pom.xml -Pnative -Dquarkus.native.container-build=true -DskipTests
+	mvn package -f ${NAME}/pom.xml -Pnative -Dquarkus.native.container-build=true -DskipTests -Dnative-image.xmx=5g
 
 test:
 	mvn test
 
 docker:
 	for svc in ${SERVICES} ; do \
-		${OCI_BIN} build -t ${OCI_DOMAIN}/jotak/gos-$$svc:${OCI_TAG} -f ./k8s/$$svc.dockerfile ./ ; \
+		eval $$(minikube docker-env) ; \
+		${OCI_BIN} build -t gos/gos-$$svc:${OCI_TAG} -f ./k8s/$$svc.dockerfile ./ ; \
 	done
-
-push-minikube:
-	for svc in ${SERVICES} ; do \
-		${OCI_BIN} tag ${OCI_DOMAIN}/jotak/gos-$$svc:${OCI_TAG} localhost:5000/jotak/gos-$$svc:${OCI_TAG} ; \
-		${OCI_BIN} push ${PUSH_OPTS} ${OCI_DOMAIN}/jotak/gos-$$svc:${OCI_TAG} ; \
-	done
-
-ifeq ($(MINIKUBE),true)
-push: push-minikube
-else
-push:
-	@echo "nothing to push"
-endif
 
 deploy-kafka:
 	${K8S_BIN} create namespace kafka
@@ -62,8 +47,6 @@ deploy-kafka:
 deploy-minikube: .ensure-yq
 	for svc in ${SERVICES} ; do \
 		cat k8s/$$svc.yml \
-			| yq w - spec.template.spec.containers[0].imagePullPolicy Always \
-			| yq w - spec.template.spec.containers[0].image localhost:5000/jotak/gos-$$svc:${OCI_TAG} \
 			| kubectl apply -f - ; \
 	done
 
@@ -82,14 +65,17 @@ expose:
 	@echo "URL: http://localhost:8081/"
 	${K8S_BIN} port-forward svc/web 8081:8081
 
+undeploy-go:
+	${K8S_BIN} delete all -l project=gos -l type=game-object
+
 undeploy:
 	${K8S_BIN} delete all -l project=gos
 
-restart-pods:
-	${K8S_BIN} delete pods -l project=gos
+restart-pods-go:
+	${K8S_BIN} delete pods -l project=gos -l type=game-object
 
 start-villains:
-	export WAVES_DELAY=30 WAVES_SIZE=5 && java -jar ./villains/target/gos-villains-${VERSION}-runner.jar
+	export WAVES_DELAY=30 WAVES_SIZE=20 && java -jar ./villains/target/gos-villains-${VERSION}-runner.jar
 
 start-catapult-vertx:
 	export Y="150" && java -jar ./catapult-vertx/target/gos-catapult-vertx-${VERSION}-runner.jar

@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   labels:
     project: gos
+    type: web
     app: web
     version: v1-native
   name: web
@@ -19,12 +20,13 @@ spec:
         prometheus.io/scheme: "http"
       labels:
         project: gos
+        type: web
         app: web
         version: v1-native
     spec:
       containers:
-      - image: localhost:5000/jotak/gos-web-native:dev
-        imagePullPolicy: IfNotPresent
+      - image: gos/gos-web-native:dev
+        imagePullPolicy: Never
         name: web-native
         ports:
         - containerPort: 8081
@@ -42,6 +44,7 @@ metadata:
   name: web
   labels:
     project: gos
+    type: web
     app: web
 spec:
   ports:

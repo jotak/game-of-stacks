@@ -6,7 +6,6 @@ import io.smallrye.reactive.messaging.annotations.Emitter
 import io.vertx.core.json.JsonObject
 import java.util.*
 import java.util.logging.Logger
-import javax.enterprise.context.ApplicationScoped
 import javax.inject.Inject
 import javax.ws.rs.Consumes
 import javax.ws.rs.POST
@@ -14,7 +13,6 @@ import javax.ws.rs.Path
 import javax.ws.rs.core.MediaType
 
 
-@ApplicationScoped
 @Path("arrow")
 class Arrow {
     companion object {

@@ -16,14 +16,14 @@ import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import java.util.logging.Logger
-import javax.enterprise.context.ApplicationScoped
 import javax.enterprise.event.Observes
 import javax.inject.Inject
 import javax.inject.Provider
-import kotlin.concurrent.scheduleAtFixedRate
+import javax.inject.Singleton
 import kotlin.concurrent.schedule
+import kotlin.concurrent.scheduleAtFixedRate
 
-@ApplicationScoped
+@Singleton
 class Hero {
     companion object {
         val LOG: Logger = Logger.getLogger(Hero::class.java.name)
@@ -127,9 +127,7 @@ class Hero {
         val t = targetWeapon.get()
         if (t != null) {
             kotlin.runCatching {
-                for (i in 0..30) {
-                    loadWeaponEmitter.send(JsonObject().put("id", t.id).put("val", i))
-                }
+                loadWeaponEmitter.send(JsonObject().put("id", t.id).put("val", 1))
             }.onFailure {
                 LOG.warning("Error while loading weapon: ${it.message}")
             }

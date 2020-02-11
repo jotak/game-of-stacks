@@ -5,14 +5,14 @@ metadata:
     project: gos
     type: game-object
     app: hero
-    version: v1
-  name: hero
+    version: v1-native
+  name: hero-native-with-bow
 spec:
-  replicas: 1
+  replicas: 5
   selector:
     matchLabels:
       app: hero
-      version: v1
+      version: v1-native
   template:
     metadata:
       annotations:
@@ -22,12 +22,12 @@ spec:
         project: gos
         type: game-object
         app: hero
-        version: v1
+        version: v1-native
     spec:
       containers:
-      - image: gos/gos-hero-hotspot:dev
+      - image: gos/gos-hero-native:dev
         imagePullPolicy: Never
-        name: hero
+        name: hero-native-with-bow
         ports:
         - containerPort: 8080
           name: http
@@ -39,8 +39,10 @@ spec:
           value: "0"
         - name: KAFKA_BOOTSTRAP_SERVERS
           value: my-cluster-kafka-bootstrap.kafka:9092
-        - name: ARROW_API_MP-REST_URL
-          value: bow:8080
+        - name: ARROW_API_MP_REST_URL
+          value: http://arrow:8080
+        - name: USE_BOW
+          value: "true"
         securityContext:
           privileged: false
 ---

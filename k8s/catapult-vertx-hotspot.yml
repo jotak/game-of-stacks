@@ -3,12 +3,13 @@ kind: Deployment
 metadata:
   labels:
     project: gos
+    type: game-object
     app: catapult
     runtime: vertx
     version: v1-vertx
   name: catapult-vertx
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: catapult
@@ -21,13 +22,14 @@ spec:
         prometheus.io/port: "9090"
       labels:
         project: gos
+        type: game-object
         app: catapult
         runtime: vertx
         version: v1-vertx
     spec:
       containers:
-        - image: localhost:5000/jotak/gos-catapult-vertx-hotspot:dev
-          imagePullPolicy: IfNotPresent
+        - image: gos/gos-catapult-vertx-hotspot:dev
+          imagePullPolicy: Never
           name: catapult-vertx
           ports:
             - containerPort: 8081
@@ -61,6 +63,7 @@ metadata:
   name: catapult
   labels:
     project: gos
+    type: game-object
     app: catapult
 spec:
   ports:
