@@ -6,11 +6,16 @@ SERVICES ?= web-hotspot villains-oj9 catapult-vertx-hotspot arrow-native arrow-h
 K8S_BIN ?= $(shell which kubectl 2>/dev/null || which oc 2>/dev/null)
 # OCI CLI (docker or podman)
 OCI_BIN ?= $(shell which podman 2>/dev/null || which docker 2>/dev/null)
-PUSH_OPTS ?= $(shell if [[ ${OCI_BIN} == *"podman" ]]; then echo "--tls-verify=false"; fi)
+OCI_BIN_SHORT = $(shell if [[ ${OCI_BIN} == *"podman" ]]; then echo "podman"; else echo "docker"; fi)
 # Tag for docker images
 OCI_TAG ?= dev
 # Set MINIKUBE=true if you want to deploy to minikube (using registry addons)
 MINIKUBE ?= true
+ifeq ($(MINIKUBE),true)
+OCI_DOMAIN ?= "$(shell minikube ip):5000"
+else
+OCI_DOMAIN ?= quay.io
+endif
 
 .ensure-yq:
 	@command -v yq >/dev/null 2>&1 || { echo >&2 "yq is required. Grab it on https://github.com/mikefarah/yq"; exit 1; }
@@ -26,8 +31,8 @@ install:
 	mvn install -DskipTests
 
 build-native:
-	mvn package -f hero/pom.xml -Pnative -Dquarkus.native.container-build=true -DskipTests -Dnative-image.xmx=5g; \
-	mvn package -f arrow/pom.xml -Pnative -Dquarkus.native.container-build=true -DskipTests -Dnative-image.xmx=5g;
+	mvn package -f hero/pom.xml -Pnative -Dquarkus.native.container-build=true -DskipTests -Dnative-image.xmx=5g -Dquarkus.native.container-runtime=${OCI_BIN_SHORT}; \
+	mvn package -f arrow/pom.xml -Pnative -Dquarkus.native.container-build=true -DskipTests -Dnative-image.xmx=5g -Dquarkus.native.container-runtime=${OCI_BIN_SHORT};
 
 test:
 	mvn test
@@ -35,7 +40,12 @@ test:
 docker:
 	for svc in ${SERVICES} ; do \
 		eval $$(minikube docker-env) ; \
-		${OCI_BIN} build -t gos/gos-$$svc:${OCI_TAG} -f ./k8s/$$svc.dockerfile ./ ; \
+		docker build -t gos/gos-$$svc:${OCI_TAG} -f ./k8s/$$svc.dockerfile ./ ; \
+	done
+
+podman:
+	for svc in ${SERVICES} ; do \
+		podman build -t ${OCI_DOMAIN}/gos/gos-$$svc:${OCI_TAG} -f ./k8s/$$svc.dockerfile ./ ; \
 	done
 
 deploy-kafka:
@@ -49,15 +59,27 @@ deploy-minikube: .ensure-yq
 			| kubectl apply -f - ; \
 	done
 
+deploy-minikube-podman: .ensure-yq
+	for svc in ${SERVICES} ; do \
+		podman tag ${OCI_DOMAIN}/gos/gos-$$svc:${OCI_TAG} localhost:5000/gos/gos-$$svc:${OCI_TAG} ; \
+		podman push --tls-verify=false ${OCI_DOMAIN}/gos/gos-$$svc:${OCI_TAG} ; \
+		cat k8s/$$svc.yml \
+			| yq w - spec.template.spec.containers[0].imagePullPolicy Always \
+			| yq w - spec.template.spec.containers[0].image localhost:5000/gos/gos-$$svc:${OCI_TAG} \
+			| kubectl apply -f - ; \
+	done
+
 deploy-other:
 	for svc in ${SERVICES} ; do \
 		${K8S_BIN} apply -f k8s/$$svc.yml ; \
 	done
 
-ifeq ($(MINIKUBE),true)
-deploy: deploy-minikube
-else
+ifneq ($(MINIKUBE),true)
 deploy: deploy-other
+else ifeq ($(OCI_BIN_SHORT),podman)
+deploy: deploy-minikube-podman
+else
+deploy: deploy-minikube
 endif
 
 arrow-scaling-hero-native-vs-hotspot--native: deploy-minikube

@@ -40,7 +40,7 @@ make deploy-kafka
 make clean build build-native
 
 # Build docker images & deploy
-MINIKUBE=true make docker push deploy
+MINIKUBE=true make docker deploy
 
 # Expose (port-forward)
 make expose
