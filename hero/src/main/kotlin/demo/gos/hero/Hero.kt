@@ -9,6 +9,7 @@ import io.smallrye.reactive.messaging.annotations.Channel
 import io.smallrye.reactive.messaging.annotations.Emitter
 import io.smallrye.reactive.messaging.annotations.OnOverflow
 import io.vertx.core.json.JsonObject
+import org.apache.commons.lang3.RandomStringUtils
 import org.eclipse.microprofile.config.inject.ConfigProperty
 import org.eclipse.microprofile.reactive.messaging.Incoming
 import java.security.SecureRandom
@@ -38,6 +39,9 @@ class Hero {
 
     @ConfigProperty(name = "X")
     lateinit var X: Optional<Double>
+
+    @ConfigProperty(name = "runtime")
+    lateinit var runtime: Optional<String>
 
     @ConfigProperty(name = "Y")
     lateinit var Y: Optional<Double>
@@ -177,7 +181,8 @@ class Hero {
                 id = id.get(),
                 x = position.get().x(),
                 y = position.get().y(),
-                sprite = sprite
+                sprite = sprite,
+                label = id.get()
         )
         val json = JsonObject.mapFrom(data)
         displayEmitter.send(json)
@@ -199,7 +204,7 @@ class Hero {
 
     private fun reset() {
         name.set(configName.orElse(HEROES[RND.nextInt(HEROES.size)]))
-        id.set("${name.get()}-${UUID.randomUUID()}")
+        id.set("${name.get()}-${runtime.orElse("")}-${RandomStringUtils.randomAlphanumeric(3)}")
         paused.set(false)
         dead.set(false)
         position.set(GameObjects.startingPoint(RND, Areas.spawnHeroesArea, X.orElse(null), Y.orElse(null)))

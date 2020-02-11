@@ -45,6 +45,8 @@ spec:
           value: http://arrow:8080
         - name: USE_BOW
           value: "true"
+        - name: RUNTIME
+          value: "quarkus-native"
         securityContext:
           privileged: false
 ---

@@ -8,5 +8,6 @@ data class DisplayData @JsonCreator constructor(
   @JsonProperty("x") val x: Double,
   @JsonProperty("y") val y: Double,
   @JsonProperty("sprite") val sprite: String? = null,
-  @JsonProperty("value") val value: Double? = null
+  @JsonProperty("value") val value: Double? = null,
+  @JsonProperty("label") val label: String? = null
 )

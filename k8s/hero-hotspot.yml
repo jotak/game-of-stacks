@@ -43,6 +43,8 @@ spec:
           value: bow:8080
         - name: USE_BOW
           value: "true"
+        - name: RUNTIME
+          value: "quarkus-hotspot"
         securityContext:
           privileged: false
 ---

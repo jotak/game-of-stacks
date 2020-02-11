@@ -30,7 +30,7 @@ PIXI.loader
 
         // Explosion
         for (let i = 1; i <= 26; i++) {
-            explosion.push(PIXI.Texture.fromFrame(`explosion${i}.png`));
+            explosion.push(PIXI.Texture.from(`explosion${i}.png`));
         }
 
         app.renderer.render(app.stage);
@@ -44,7 +44,7 @@ app.ticker.add(function (delta) {
 function putInDirection(sprite, prevX, newX) {
     if (prevX > newX) {
         sprite.scale.x = -1;
-    } else if(prevX < newX) {
+    } else if (prevX < newX) {
         sprite.scale.x = 1;
     }
 }
@@ -71,7 +71,7 @@ function resetGame() {
 
 function removeGameObject(obj) {
     if (elements[obj.id]) {
-        app.stage.removeChild(elements[obj.id].sprite);
+        app.stage.removeChild(elements[obj.id].element);
         elements[obj.id] = null;
         delete elements[obj.id];
     }
@@ -88,28 +88,30 @@ function displayGameObject(obj) {
             removeGameObject(obj);
         } else if (el.spriteName != obj.sprite) {
             console.log(`Updating ${obj.id} with sprite ${obj.sprite} at ${obj.x}, ${obj.y}`)
-            app.stage.removeChild(el.sprite);
+            app.stage.removeChild(el.element);
             if (obj.sprite === "explode") {
                 explode(obj.x, obj.y);
             } else {
                 el.sprite = new PIXI.Sprite(players[obj.sprite + ".png"]);
                 el.spriteName = obj.sprite;
-                el.sprite.x = obj.x;
-                el.sprite.y = obj.y;
-                app.stage.addChild(el.sprite);
+                el.element.x = obj.x;
+                el.element.y = obj.y;
+                el.label.text = obj.label;
+                app.stage.addChild(el.element);
             }
         } else {
             //console.log(`Updating ${obj.id}`)
             putInDirection(el.sprite, el.sprite.x, obj.x);
-            if(!el.tween) {
-                el.tween = PIXI.tweenManager.createTween(el.sprite);
+            el.label.text = obj.label;
+            if (!el.tween) {
+                el.tween = PIXI.tweenManager.createTween(el.element);
                 el.tween.time = 1000;
                 el.tween.easing = PIXI.tween.Easing.linear();
-            } 
+            }
             el.tween.reset();
             el.tween.from({
-                x: el.sprite.x,
-                y: el.sprite.y
+                x: el.element.x,
+                y: el.element.y
             });
             el.tween.to({
                 x: obj.x,
@@ -119,25 +121,44 @@ function displayGameObject(obj) {
         }
 
     } else {
+        const element = new PIXI.Container();
+        element.x = obj.x;
+        element.y = obj.y;
+        element.width = 64;
+        element.height = 64;
+        
         const sprite = new PIXI.Sprite(players[obj.sprite + ".png"]);
         console.log(`Creating object ${obj.id} with sprite ${obj.sprite} at ${obj.x}, ${obj.y}`)
-        sprite.x = obj.x;
-        sprite.y = obj.y;
+        
+        let label;
+        if (obj.label) {
+            label = new PIXI.Text(obj.label, { align: 'center' });
+            label.width = 200;
+            label.y = 30;
+            label.x = -100;
+            element.addChild(label);
+        }
+
         sprite.anchor.x = 0.5;
         sprite.anchor.y = 0.5;
         sprite.scale.x = -1;
+
         elements[obj.id] = {
             id: obj.id,
             spriteName: obj.sprite,
+            element,
+            label,
             sprite,
             time: Date.now(),
         }
-        app.stage.addChild(sprite);
+        element.addChild(sprite);
+        app.stage.addChild(element);
+
     }
 }
 
 function endGame(body) {
-    if(ended) {
+    if (ended) {
         return;
     }
     ended = true;
@@ -146,10 +167,10 @@ function endGame(body) {
     $("#container").addClass("ended").addClass(body.winner)
 }
 
-function gameLoop(delta){
-    for(id in elements) {
+function gameLoop(delta) {
+    for (id in elements) {
         const el = elements[id];
-        if(Date.now() - el.time > 5000) {
+        if (Date.now() - el.time > 5000) {
             removeGameObject(el);
         }
     }
