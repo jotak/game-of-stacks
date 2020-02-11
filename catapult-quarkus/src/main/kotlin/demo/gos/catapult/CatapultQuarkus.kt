@@ -19,7 +19,6 @@ import javax.inject.Singleton
 import kotlin.concurrent.scheduleAtFixedRate
 
 
-// TODO: handle /load http handler
 @Singleton
 class CatapultQuarkus : BaseCatapult("CATA-Q-" + UUID.randomUUID().toString(), colorize) {
   companion object {
@@ -79,7 +78,7 @@ class CatapultQuarkus : BaseCatapult("CATA-Q-" + UUID.randomUUID().toString(), c
     listenToVillains(o.mapTo(Noise::class.java))
   }
 
-  @Incoming("load-catapult")
+  @Incoming("load-weapon")
   fun loadCatapult(o: JsonObject) {
     if(!initialized.get()) {
       return

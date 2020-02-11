@@ -7,6 +7,7 @@ import io.vertx.core.logging.LoggerFactory
 import io.vertx.kafka.client.consumer.KafkaConsumer
 import io.vertx.kotlin.coroutines.CoroutineVerticle
 
+
 val LOGGER: Logger = LoggerFactory.getLogger("Villains")
 val WAVES_SIZE = Commons.getIntEnv("WAVES_SIZE", 10)
 val WAVES_DELAY = Commons.getDoubleEnv("WAVES_DELAY", 20.0)
@@ -16,6 +17,8 @@ class VillainsVerticle : CoroutineVerticle() {
   private var isPaused = false
 
   override suspend fun start() {
+
+
     // Waves scheduler
     vertx.setPeriodic(500) {
       if (WAVES_SIZE > 0 && !isPaused) {

@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   labels:
     project: gos
+    type: game-object
+    type: game-object
     app: hero
     version: v1-native
   name: hero-native
@@ -19,12 +21,14 @@ spec:
         prometheus.io/scheme: "http"
       labels:
         project: gos
+        type: game-object
         app: hero
+        type: game-object
         version: v1-native
     spec:
       containers:
-      - image: localhost:5000/jotak/gos-hero-native:dev
-        imagePullPolicy: IfNotPresent
+      - image: gos/gos-hero-native:dev
+        imagePullPolicy: Never
         name: hero-native
         ports:
         - containerPort: 8080
@@ -37,6 +41,8 @@ spec:
           value: "0"
         - name: KAFKA_BOOTSTRAP_SERVERS
           value: my-cluster-kafka-bootstrap.kafka:9092
+        - name: ARROW_API_MP_REST_URL
+          value: http://arrow:8080
         securityContext:
           privileged: false
 ---
@@ -46,7 +52,9 @@ metadata:
   name: hero
   labels:
     project: gos
+    type: game-object
     app: hero
+    type: game-object
 spec:
   ports:
     - name: http

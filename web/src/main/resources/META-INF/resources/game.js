@@ -1,15 +1,14 @@
 const type = PIXI.utils.isWebGLSupported() ? "WebGL" : "canvas";
 PIXI.settings.SPRITE_MAX_TEXTURES = Math.min(PIXI.settings.SPRITE_MAX_TEXTURES, 16);
 const app = new PIXI.Application({
-    width: window.innerWidth,
-    height: window.innerHeight,
+    width: 1024,
+    height: 768,
     antialias: true,
     resolution: 1,
     transparent: true,
-    autoResize: true,
 });
 
-$("body").append(app.view);
+$("#container").append(app.view);
 
 let elements = {};
 
@@ -45,7 +44,7 @@ app.ticker.add(function (delta) {
 function putInDirection(sprite, prevX, newX) {
     if (prevX > newX) {
         sprite.scale.x = -1;
-    } else {
+    } else if(prevX < newX) {
         sprite.scale.x = 1;
     }
 }
@@ -126,6 +125,7 @@ function displayGameObject(obj) {
         sprite.y = obj.y;
         sprite.anchor.x = 0.5;
         sprite.anchor.y = 0.5;
+        sprite.scale.x = -1;
         elements[obj.id] = {
             id: obj.id,
             spriteName: obj.sprite,

@@ -4,6 +4,7 @@ import demo.gos.common.*
 import demo.gos.common.maths.Point
 import io.quarkus.runtime.ShutdownEvent
 import io.quarkus.runtime.StartupEvent
+import io.reactivex.Flowable
 import io.smallrye.reactive.messaging.annotations.Channel
 import io.smallrye.reactive.messaging.annotations.Emitter
 import io.smallrye.reactive.messaging.annotations.OnOverflow
@@ -19,8 +20,8 @@ import javax.enterprise.event.Observes
 import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton
+import kotlin.concurrent.schedule
 import kotlin.concurrent.scheduleAtFixedRate
-
 
 @Singleton
 class Hero {
@@ -44,21 +45,26 @@ class Hero {
     @ConfigProperty(name = "id")
     lateinit var configId: Optional<String>
 
+    @ConfigProperty(name = "use-bow", defaultValue = "false")
+    lateinit var useBow: Provider<Boolean>
+
     @ConfigProperty(name = "accuracy", defaultValue = "0.7")
     lateinit var accuracy: Provider<Double>
 
     @ConfigProperty(name = "speed", defaultValue = "35.0")
     lateinit var speed: Provider<Double>
 
-    private val initialized = AtomicBoolean(false)
+
     private lateinit var id: String
 
-
-    private val position = AtomicReference<Point>()
     private val randomDest = AtomicReference<Point>()
     private val dead = AtomicBoolean(false)
-    private val paused = AtomicBoolean(false)
+
     private val targetWeapon = AtomicReference<Noise>()
+
+    val initialized = AtomicBoolean(false)
+    val position = AtomicReference<Point>()
+    val paused = AtomicBoolean(false)
 
     @Inject
     @Channel("hero-making-noise")
@@ -69,16 +75,31 @@ class Hero {
     lateinit var displayEmitter: Emitter<JsonObject>
 
     @Inject
-    @Channel("load-catapult")
+    @Channel("load-weapon")
     @OnOverflow(OnOverflow.Strategy.BUFFER)
-    lateinit var loadCatapultEmitter: Emitter<JsonObject>
+    lateinit var loadWeaponEmitter: Emitter<JsonObject>
+
+    @Inject
+    @Channel("weapon-making-noise")
+    lateinit var weaponMakingNoiseFlowable: Flowable<JsonObject>
 
     fun onStart(@Observes e: StartupEvent) {
         reset()
-        LOG.info("$id has joined the game (${position.get().x()}, ${position.get().y()})")
+        LOG.info("$id has joined the game (${position.get().x()}, ${position.get().y()}) ${if(useBow.get()) "with a bow" else ""}")
         initialized.set(true)
         timer.scheduleAtFixedRate(0L, DELTA_MS) {
             scheduled()
+        }
+        if (!useBow.get()) {
+            weaponMakingNoiseFlowable
+                    .takeUntil { targetWeapon.get() != null }
+                    .subscribe { weaponMakingNoise(it) }
+        } else {
+            timer.schedule(DELTA_MS) {
+                // Move to the weapon area
+                val pos = position.get()
+                position.set(Point(Areas.spawnWeaponArea.x, pos.y()))
+            }
         }
     }
 
@@ -91,26 +112,24 @@ class Hero {
             makeNoise()
             if (targetWeapon.get() != null) {
                 if (isOnWeapon()) {
-                    loadCatapult()
+                    loadWeapon()
                 } else {
                     walk()
                 }
-            } else {
+            } else if(!useBow.get()) {
                 walkRandom()
             }
         }
         display()
     }
 
-    private fun loadCatapult() {
+    private fun loadWeapon() {
         val t = targetWeapon.get()
         if (t != null) {
             kotlin.runCatching {
-                for (i in 0..30) {
-                    loadCatapultEmitter.send(JsonObject().put("id", t.id).put("val", i))
-                }
+                loadWeaponEmitter.send(JsonObject().put("id", t.id).put("val", 1))
             }.onFailure {
-                LOG.warning("Error while loading catapult: ${it.message}")
+                LOG.warning("Error while loading weapon: ${it.message}")
             }
         }
     }
@@ -155,7 +174,7 @@ class Hero {
         val sprite = if (dead.get()) "rip" else id.toLowerCase()
         val data = DisplayData(
                 id = id,
-                x =  position.get().x(),
+                x = position.get().x(),
                 y = position.get().y(),
                 sprite = sprite
         )
@@ -165,7 +184,7 @@ class Hero {
 
     @Incoming("game")
     fun game(o: JsonObject) {
-        if(!initialized.get()) {
+        if (!initialized.get()) {
             return
         }
         val type = o.getString("type")!!
@@ -186,18 +205,8 @@ class Hero {
         randomDest.set(null)
     }
 
-    @Incoming("villain-making-noise")
-    fun villainMakingNoise(o: JsonObject) {
-        if(!initialized.get()) {
-            return
-        }
-        val noise = o.mapTo(Noise::class.java)
-        LOG.finest("$id received villain noise: $noise")
-    }
-
-    @Incoming("weapon-making-noise")
     fun weaponMakingNoise(o: JsonObject) {
-        if(!initialized.get()) {
+        if (!initialized.get()) {
             return
         }
         val noise = o.mapTo(Noise::class.java)
@@ -218,7 +227,7 @@ class Hero {
 
     @Incoming("kill-around")
     fun onKillAround(o: JsonObject) {
-        if(!initialized.get()) {
+        if (!initialized.get()) {
             return
         }
         if (dead.get()) {
@@ -233,7 +242,7 @@ class Hero {
 
     @Incoming("kill-single")
     fun onKillSingle(o: JsonObject) {
-        if(!initialized.get()) {
+        if (!initialized.get()) {
             return
         }
         if (dead.get()) {

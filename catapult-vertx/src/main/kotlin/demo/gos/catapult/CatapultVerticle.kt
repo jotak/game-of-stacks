@@ -57,7 +57,7 @@ class Catapult(private val vertx: Vertx, id: String)
       .subscribe("villain-making-noise").handler { listenToVillains(it.value().mapTo(Noise::class.java)) }
 
     KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
-      .subscribe("load-catapult").handler(Sync.fiberHandler { record ->
+      .subscribe("load-weapon").handler(Sync.fiberHandler { record ->
         val value = record.value()
         if (value.getString("id") == id) {
           GlobalScope.launch(vertx.dispatcher()) {

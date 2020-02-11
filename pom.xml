@@ -16,6 +16,7 @@
     <module>catapult-vertx</module>
     <module>catapult-quarkus</module>
     <module>hero</module>
+    <module>arrow</module>
     <module>villains</module>
   </modules>
 
