@@ -204,7 +204,7 @@ class Hero {
 
     private fun reset() {
         name.set(configName.orElse(HEROES[RND.nextInt(HEROES.size)]))
-        id.set("${name.get()}-${runtime.orElse("")}-${RandomStringUtils.randomAlphanumeric(3)}")
+        id.set("${name.get()}-${runtime.orElse("")}-${RandomStringUtils.random(3, 0, 0, true, true, null, RND)}")
         paused.set(false)
         dead.set(false)
         position.set(GameObjects.startingPoint(RND, Areas.spawnHeroesArea, X.orElse(null), Y.orElse(null)))

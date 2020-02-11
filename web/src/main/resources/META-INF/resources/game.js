@@ -71,7 +71,7 @@ function resetGame() {
 
 function removeGameObject(obj) {
     if (elements[obj.id]) {
-        app.stage.removeChild(elements[obj.id].element);
+        app.stage.removeChild(elements[obj.id].sprite);
         elements[obj.id] = null;
         delete elements[obj.id];
     }
@@ -88,30 +88,28 @@ function displayGameObject(obj) {
             removeGameObject(obj);
         } else if (el.spriteName != obj.sprite) {
             console.log(`Updating ${obj.id} with sprite ${obj.sprite} at ${obj.x}, ${obj.y}`)
-            app.stage.removeChild(el.element);
+            app.stage.removeChild(el.sprite);
             if (obj.sprite === "explode") {
                 explode(obj.x, obj.y);
             } else {
                 el.sprite = new PIXI.Sprite(players[obj.sprite + ".png"]);
                 el.spriteName = obj.sprite;
-                el.element.x = obj.x;
-                el.element.y = obj.y;
-                el.label.text = obj.label;
-                app.stage.addChild(el.element);
+                el.sprite.x = obj.x;
+                el.sprite.y = obj.y;
+                app.stage.addChild(el.sprite);
             }
         } else {
             //console.log(`Updating ${obj.id}`)
             putInDirection(el.sprite, el.sprite.x, obj.x);
-            el.label.text = obj.label;
-            if (!el.tween) {
-                el.tween = PIXI.tweenManager.createTween(el.element);
+            if(!el.tween) {
+                el.tween = PIXI.tweenManager.createTween(el.sprite);
                 el.tween.time = 1000;
                 el.tween.easing = PIXI.tween.Easing.linear();
             }
             el.tween.reset();
             el.tween.from({
-                x: el.element.x,
-                y: el.element.y
+                x: el.sprite.x,
+                y: el.sprite.y
             });
             el.tween.to({
                 x: obj.x,
@@ -121,39 +119,20 @@ function displayGameObject(obj) {
         }
 
     } else {
-        const element = new PIXI.Container();
-        element.x = obj.x;
-        element.y = obj.y;
-        element.width = 64;
-        element.height = 64;
-        
         const sprite = new PIXI.Sprite(players[obj.sprite + ".png"]);
         console.log(`Creating object ${obj.id} with sprite ${obj.sprite} at ${obj.x}, ${obj.y}`)
-        
-        let label;
-        if (obj.label) {
-            label = new PIXI.Text(obj.label, { align: 'center' });
-            label.width = 200;
-            label.y = 30;
-            label.x = -100;
-            element.addChild(label);
-        }
-
+        sprite.x = obj.x;
+        sprite.y = obj.y;
         sprite.anchor.x = 0.5;
         sprite.anchor.y = 0.5;
         sprite.scale.x = -1;
-
         elements[obj.id] = {
             id: obj.id,
             spriteName: obj.sprite,
-            element,
-            label,
             sprite,
             time: Date.now(),
         }
-        element.addChild(sprite);
-        app.stage.addChild(element);
-
+        app.stage.addChild(sprite);
     }
 }
 
