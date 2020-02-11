@@ -84,7 +84,7 @@ start-catapult-quarkus:
 	export Y="350" && java -jar ./catapult-quarkus/target/gos-catapult-quarkus-${VERSION}-runner.jar
 
 start-ned:
-	export Y="150" SPEED="70" ID="ned-stark" USE_BOW="true" && java -jar ./hero/target/gos-hero-${VERSION}-runner.jar
+	export Y="150" SPEED="70" NAME="ned-stark" USE_BOW="true" && java -jar ./hero/target/gos-hero-${VERSION}-runner.jar
 
 dev-web:
 	cd web && mvn compile quarkus:dev
@@ -93,7 +93,7 @@ start-web:
 	java -jar ./web/target/gos-web-${VERSION}-runner.jar
 
 start-aria:
-	export Y="350" SPEED="70" ID="aria-stark" USE_BOW="true" && java -jar ./hero/target/gos-hero-${VERSION}-runner.jar
+	export Y="350" SPEED="70" NAME="aria-stark" USE_BOW="true" && java -jar ./hero/target/gos-hero-${VERSION}-runner.jar
 
 start-random-hero:
 	unset X Y SPEED ID USE_BOW && java -jar ./hero/target/gos-hero-${VERSION}-runner.jar;

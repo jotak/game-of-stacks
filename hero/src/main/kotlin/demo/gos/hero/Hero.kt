@@ -42,8 +42,8 @@ class Hero {
     @ConfigProperty(name = "Y")
     lateinit var Y: Optional<Double>
 
-    @ConfigProperty(name = "id")
-    lateinit var configId: Optional<String>
+    @ConfigProperty(name = "name")
+    lateinit var configName: Optional<String>
 
     @ConfigProperty(name = "use-bow", defaultValue = "false")
     lateinit var useBow: Provider<Boolean>
@@ -55,7 +55,8 @@ class Hero {
     lateinit var speed: Provider<Double>
 
 
-    private lateinit var id: String
+    private val id = AtomicReference<String>()
+    private val name = AtomicReference<String>()
 
     private val randomDest = AtomicReference<Point>()
     private val dead = AtomicBoolean(false)
@@ -171,9 +172,9 @@ class Hero {
     }
 
     private fun display() {
-        val sprite = if (dead.get()) "rip" else id.toLowerCase()
+        val sprite = if (dead.get()) "rip" else name.get()
         val data = DisplayData(
-                id = id,
+                id = id.get(),
                 x = position.get().x(),
                 y = position.get().y(),
                 sprite = sprite
@@ -197,7 +198,8 @@ class Hero {
     }
 
     private fun reset() {
-        id = configId.orElse(HEROES[RND.nextInt(HEROES.size)])
+        name.set(configName.orElse(HEROES[RND.nextInt(HEROES.size)]))
+        id.set("${name.get()}-${UUID.randomUUID()}")
         paused.set(false)
         dead.set(false)
         position.set(GameObjects.startingPoint(RND, Areas.spawnHeroesArea, X.orElse(null), Y.orElse(null)))
@@ -248,13 +250,13 @@ class Hero {
         if (dead.get()) {
             return
         }
-        if (id == o.getString("id")) {
+        if (id.get() == o.getString("id")) {
             LOG.info("Uuuuuhhggg!!!! (Today, $id has died)")
             dead.set(true)
         }
     }
 
     private fun makeNoise() {
-        heroNoiseEmitter.send(JsonObject.mapFrom(Noise.fromPoint(id, position.get())))
+        heroNoiseEmitter.send(JsonObject.mapFrom(Noise.fromPoint(id.get(), position.get())))
     }
 }
