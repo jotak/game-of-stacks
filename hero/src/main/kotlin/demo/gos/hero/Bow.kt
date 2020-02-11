@@ -38,6 +38,9 @@ class Bow {
     @ConfigProperty(name = "accuracy", defaultValue = "0.7")
     lateinit var accuracy: Provider<Double>
 
+    @ConfigProperty(name = "BURST", defaultValue = "5")
+    lateinit var burst: Provider<Long>
+
     @ConfigProperty(name = "speed", defaultValue = "35.0")
     lateinit var speed: Provider<Double>
 
@@ -88,6 +91,13 @@ class Bow {
             return
         }
         display()
+        kotlin.runCatching {
+            for (i in 0..burst.get()) {
+                fire()
+            }
+        }.onFailure {
+            LOG.warning("Error while firing arrow: ${it.message}")
+        }
         fire()
     }
 

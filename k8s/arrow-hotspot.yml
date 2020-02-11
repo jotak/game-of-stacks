@@ -8,7 +8,7 @@ metadata:
     version: v1
   name: arrow
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: arrow

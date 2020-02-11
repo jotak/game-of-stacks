@@ -9,7 +9,7 @@ metadata:
     version: v1-native
   name: hero-native
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: hero
@@ -43,6 +43,8 @@ spec:
           value: my-cluster-kafka-bootstrap.kafka:9092
         - name: ARROW_API_MP_REST_URL
           value: http://arrow:8080
+        - name: USE_BOW
+          value: "true"
         securityContext:
           privileged: false
 ---

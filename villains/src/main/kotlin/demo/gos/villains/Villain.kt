@@ -12,6 +12,7 @@ import java.util.*
 
 const val DELTA_MS = 1000L
 const val RANGE = 30.0
+const val TARGET_COUNTDOWN = 3
 val SPEED = Commons.getDoubleEnv("SPEED", 35.0)
 // Accuracy [0, 1]
 val ACCURACY = Commons.getDoubleEnv("ACCURACY", 0.7)
@@ -50,11 +51,12 @@ class Villain(private val kafkaProducer: KafkaProducer<String, JsonObject>) {
     if (currentTarget == null) {
       LOGGER.info("A Villain has elected a target at $noisePos")
       target = noise
+      targetCountDown = TARGET_COUNTDOWN
     } else {
       if (noise.id == currentTarget.id) {
         // Update target position
         target = noise
-        targetCountDown = 3
+        targetCountDown = TARGET_COUNTDOWN
       } else {
         val currentStrength = currentTarget.strength(pos)
         val newStrength = noise.strength(pos)
@@ -62,6 +64,7 @@ class Villain(private val kafkaProducer: KafkaProducer<String, JsonObject>) {
         if (newStrength > currentStrength && RND.nextInt(100) < 5) {
           LOGGER.info("A Villain has elected a different target at $noisePos")
           target = noise
+          targetCountDown = TARGET_COUNTDOWN
         }
       }
     }

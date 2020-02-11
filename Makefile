@@ -1,7 +1,7 @@
 VERSION := 0.0.1
 STRIMZI_VERSION := 0.16.0
 # List of all services (for image building / deploying)
-SERVICES ?= web-hotspot villains-oj9 hero-native catapult-vertx-hotspot arrow-native hero-native-with-bow
+SERVICES ?= web-hotspot villains-oj9 catapult-vertx-hotspot arrow-native arrow-hotspot hero-native hero-hotspot
 # Kube's CLI (kubectl or oc)
 K8S_BIN ?= $(shell which kubectl 2>/dev/null || which oc 2>/dev/null)
 # OCI CLI (docker or podman)
@@ -10,12 +10,10 @@ PUSH_OPTS ?= $(shell if [[ ${OCI_BIN} == *"podman" ]]; then echo "--tls-verify=f
 # Tag for docker images
 OCI_TAG ?= dev
 # Set MINIKUBE=true if you want to deploy to minikube (using registry addons)
-MINIKUBE ?= false
+MINIKUBE ?= true
 
 .ensure-yq:
 	@command -v yq >/dev/null 2>&1 || { echo >&2 "yq is required. Grab it on https://github.com/mikefarah/yq"; exit 1; }
-
-NAME ?= hero
 
 DOCKER_ENV = ""
 
@@ -28,7 +26,8 @@ install:
 	mvn install -DskipTests
 
 build-native:
-	mvn package -f ${NAME}/pom.xml -Pnative -Dquarkus.native.container-build=true -DskipTests -Dnative-image.xmx=5g
+	mvn package -f hero/pom.xml -Pnative -Dquarkus.native.container-build=true -DskipTests -Dnative-image.xmx=5g; \
+	mvn package -f arrow/pom.xml -Pnative -Dquarkus.native.container-build=true -DskipTests -Dnative-image.xmx=5g;
 
 test:
 	mvn test
@@ -60,6 +59,21 @@ deploy: deploy-minikube
 else
 deploy: deploy-other
 endif
+
+arrow-scaling-hero-native-vs-hotspot--native: deploy-minikube
+	make scale-service svc=hero-native count=5; \
+	make scale-service svc=arrow-native count=1; \
+	make scale-service svc=villains-oj9 count=1;
+
+arrow-scaling-hero-native-vs-hotspot--hotspot: deploy-minikube
+	make scale-service svc=hero-hotspot count=5; \
+	make scale-service svc=arrow-native count=1; \
+	make scale-service svc=villains-oj9 count=1;
+
+scale-service:
+	 kubectl get deployment $$svc -o yaml \
+    		| yq w - spec.replicas $(count) \
+    		| kubectl apply -f - ; \
 
 expose:
 	@echo "URL: http://localhost:8081/"

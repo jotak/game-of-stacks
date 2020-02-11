@@ -9,7 +9,7 @@ metadata:
     version: v1-vertx
   name: catapult-vertx
 spec:
-  replicas: 2
+  replicas: 0
   selector:
     matchLabels:
       app: catapult

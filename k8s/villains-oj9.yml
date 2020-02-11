@@ -6,9 +6,9 @@ metadata:
     type: game-object
     app: villains
     version: v1
-  name: villains
+  name: villains-oj9
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: villains
@@ -45,7 +45,11 @@ spec:
             - name: KAFKA_ADDRESS
               value: my-cluster-kafka-bootstrap.kafka:9092
             - name: WAVES_SIZE
-              value: "4"
+              value: "50"
+            - name: WAVES_DELAY
+              value: "10"
+            - name: WAVES_COUNT
+              value: "2"
           securityContext:
             privileged: false
 #          readinessProbe:
