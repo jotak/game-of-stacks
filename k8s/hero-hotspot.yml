@@ -40,7 +40,7 @@ spec:
         - name: KAFKA_BOOTSTRAP_SERVERS
           value: my-cluster-kafka-bootstrap.kafka:9092
         - name: ARROW_API_MP-REST_URL
-          value: bow:8080
+          value: http://arrow:8080
         - name: USE_BOW
           value: "true"
         - name: RUNTIME
