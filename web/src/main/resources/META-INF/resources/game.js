@@ -9,7 +9,7 @@ const app = new PIXI.Application({
 });
 
 $("#container").append(app.view);
-
+let ended = false;
 let elements = {};
 
 let players;
@@ -78,7 +78,7 @@ function removeGameObject(obj) {
 }
 
 function displayGameObject(obj) {
-    if (!players) {
+    if (!players || ended) {
         return;
     }
     if (elements[obj.id]) {
@@ -134,6 +134,16 @@ function displayGameObject(obj) {
         }
         app.stage.addChild(sprite);
     }
+}
+
+function endGame(body) {
+    if(ended) {
+        return;
+    }
+    ended = true;
+    resetGame();
+    $("#container").append($(`<div id="winner"><b>${body.winner}</b><br />WON THE IRON THRONES</div>`));
+    $("#container").addClass("ended").addClass(body.winner)
 }
 
 function gameLoop(delta){

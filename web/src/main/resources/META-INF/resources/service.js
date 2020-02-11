@@ -16,6 +16,12 @@ eb.onopen = function () {
     console.log('removeGameObject');
     removeGameObject(msg.body);
   });
+  eb.registerHandler('endGame', function (err, msg) {
+    if (err) {
+        console.log(err);
+    }
+    endGame(msg.body);
+  });
 };
 
 eb.onreconnect = function() {

@@ -24,7 +24,7 @@ class Villain(private val kafkaProducer: KafkaProducer<String, JsonObject>) {
   private var randomDest: Point? = null
   private var target: Noise? = null
   private var targetCountDown = 0
-  private var isDead = false
+  var isDead = false
   private var isPaused = false
   var stopped = false
   private val deadTimer = Gauge(3.0, fun() { stop() })
@@ -46,7 +46,7 @@ class Villain(private val kafkaProducer: KafkaProducer<String, JsonObject>) {
     val noise = json.mapTo(Noise::class.java)
     val noisePos = noise.toPoint()
     val currentTarget = target
-    targetCountDown = 5
+
     if (currentTarget == null) {
       LOGGER.info("A Villain has elected a target at $noisePos")
       target = noise
@@ -54,7 +54,7 @@ class Villain(private val kafkaProducer: KafkaProducer<String, JsonObject>) {
       if (noise.id == currentTarget.id) {
         // Update target position
         target = noise
-
+        targetCountDown = 3
       } else {
         val currentStrength = currentTarget.strength(pos)
         val newStrength = noise.strength(pos)

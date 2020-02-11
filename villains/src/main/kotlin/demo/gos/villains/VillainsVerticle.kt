@@ -6,8 +6,10 @@ import io.vertx.core.logging.Logger
 import io.vertx.core.logging.LoggerFactory
 import io.vertx.kafka.client.consumer.KafkaConsumer
 import io.vertx.kafka.client.producer.KafkaProducer
+import io.vertx.kafka.client.producer.KafkaProducerRecord
 import io.vertx.kotlin.coroutines.CoroutineVerticle
 import io.vertx.kotlin.coroutines.dispatcher
+import io.vertx.kotlin.kafka.client.producer.writeAwait
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.util.*
@@ -15,34 +17,40 @@ import java.util.*
 
 val LOGGER: Logger = LoggerFactory.getLogger("Villains")
 val WAVES_SIZE = Commons.getIntEnv("WAVES_SIZE", 10)
+val WAVES_COUNT = Commons.getIntEnv("WAVES_COUNT", 10)
 val WAVES_DELAY = Commons.getDoubleEnv("WAVES_DELAY", 20.0)
 
 class VillainsVerticle : CoroutineVerticle() {
   private var kafkaProducer: KafkaProducer<String, JsonObject>? = null
   private var waveTimer = 0.0
+  private var wavesCount = 0
   private var isPaused = false
   private val consumers = mutableListOf<KafkaConsumer<String, JsonObject>>()
   private val villains = mutableListOf<Villain>()
   private var gameLoopId: Long? = null
   private var waveScheduler: Long? = null
+  private var heroesCountDown = -1
 
   override suspend fun start() {
     kafkaProducer = KafkaProducer.create<String, JsonObject>(vertx, Commons.kafkaConfigProducer)
     // Waves scheduler
     waveScheduler = vertx.setPeriodic(500) {
-      if (WAVES_SIZE > 0 && !isPaused) {
+      if (wavesCount < WAVES_COUNT && WAVES_SIZE > 0 && !isPaused) {
         waveTimer -= 0.5
         if (waveTimer <= 0) {
+          wavesCount++
           waveTimer = WAVES_DELAY
-          LOGGER.info("New villains wave! now: ${runningVillains().size}")
           (0 until WAVES_SIZE).forEach { _ -> villains.add(Villain(kafkaProducer!!)) }
+          LOGGER.info("New villains wave! now: ${runningVillains().size}")
         }
       }
     }
 
     gameLoopId = vertx.setPeriodic(DELTA_MS) {
       if (!isPaused) {
-        update(DELTA_MS.toDouble() / 1000.0)
+        GlobalScope.launch(vertx.dispatcher()) {
+          update(DELTA_MS.toDouble() / 1000.0)
+        }
       }
     }
 
@@ -54,11 +62,25 @@ class VillainsVerticle : CoroutineVerticle() {
     newConsumer().subscribe("kill-single").handler { onKillSingle(it.value()) }
   }
 
-  private fun update(delta: Double) {
+  private suspend fun update(delta: Double) {
+    heroesCountDown--
     runningVillains().forEach {
-      GlobalScope.launch(vertx.dispatcher()) {
-        it.update(delta)
-      }
+      it.update(delta)
+    }
+
+    // Check game end
+    var winner: String? = null
+
+    if (heroesCountDown == 0) {
+      winner = "villains"
+    }
+
+    if (wavesCount == WAVES_COUNT && runningVillains().count { !it.isDead } == 0) {
+      winner = "heroes"
+    }
+
+    if (winner != null) {
+      kafkaProducer!!.writeAwait(KafkaProducerRecord.create("game", JsonObject().put("type", "end").put("winner", winner)))
     }
   }
 
@@ -87,6 +109,7 @@ class VillainsVerticle : CoroutineVerticle() {
   }
 
   private fun listenToHeroes(json: JsonObject) {
+    heroesCountDown = 10
     runningVillains().forEach { it.listenToHeroes(json) }
   }
 

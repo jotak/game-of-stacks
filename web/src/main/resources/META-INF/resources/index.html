@@ -18,6 +18,20 @@
     h1 {
       text-align: center;
       z-index: 2;
+      color: #2F5069;
+    }
+
+    #winner {
+      position: absolute;
+      z-index: 3;
+      top: calc(50% - 75px);
+      width: 100%;
+      font-size: 40px;
+      text-align: center;
+    }
+
+    #winner b {
+      font-size: 70px;
     }
 
     #control {
@@ -67,6 +81,19 @@
       width: 1024px;
       height: 768px;
       z-index: 1;
+    }
+    #container.ended {
+      background-image: none;
+    }
+    #container.ended.villains {
+      background-color: red;
+    }
+    #container.ended.heroes {
+      background-color: #F7ECAA;
+    }
+
+    .ended #control {
+      display: none;
     }
 
     canvas {
