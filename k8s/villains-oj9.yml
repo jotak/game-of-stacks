@@ -45,11 +45,11 @@ spec:
             - name: KAFKA_ADDRESS
               value: my-cluster-kafka-bootstrap.kafka:9092
             - name: WAVES_SIZE
-              value: "10"
+              value: "30"
             - name: WAVES_DELAY
               value: "10"
             - name: WAVES_COUNT
-              value: "2"
+              value: "4"
           securityContext:
             privileged: false
 #          readinessProbe:

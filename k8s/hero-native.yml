@@ -58,7 +58,6 @@ metadata:
     project: gos
     type: game-object
     app: hero
-    type: game-object
 spec:
   ports:
     - name: http

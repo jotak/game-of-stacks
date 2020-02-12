@@ -45,6 +45,11 @@
       z-index: 2;
     }
 
+    audio {
+      display: inline-block;
+      margin: 5px 2.5px;
+    }
+
     button {
       display: inline-block;
       border: none;
@@ -112,9 +117,14 @@
       <button type="button" onclick="play()">Play</button>
       <button type="button" onclick="pause()">Pause</button>
       <button type="button" onclick="reset()">Reset</button>
+      <audio controls src="assets/music.mp3">
+        Your browser does not support the <code>audio</code> element.
+      </audio>
+      <span style="font-family: sans-serif; font-size: 8pt; color: #333">
+        music courtesy of <i><a href="https://www.newgrounds.com/audio/listen/476918">floatingpointmusic</a></i>
+      </span>
     </div>
   </div>
-
 
   <script src="assets/libs/jquery.min.js"></script>
   <script src="assets/libs/sockjs.min.js"></script>
