@@ -58,7 +58,7 @@ deploy-kafka:
 deploy-minikube: .ensure-yq
 	for svc in ${SERVICES} ; do \
 		cat k8s/$$svc.yml \
-			| kubectl apply -f - ; \
+			| ${K8S_BIN} apply -f - ; \
 	done
 
 deploy-minikube-podman: .ensure-yq
@@ -66,16 +66,19 @@ deploy-minikube-podman: .ensure-yq
 		cat k8s/$$svc.yml \
 			| yq w - spec.template.spec.containers[0].imagePullPolicy Always \
 			| yq w - spec.template.spec.containers[0].image localhost:5000/gos/gos-$$svc:${OCI_TAG} \
-			| kubectl apply -f - ; \
+			| ${K8S_BIN} apply -f - ; \
 	done
 
-deploy-other:
+deploy-quay: .ensure-yq
 	for svc in ${SERVICES} ; do \
-		${K8S_BIN} apply -f k8s/$$svc.yml ; \
+		cat k8s/$$svc.yml \
+			| yq w - spec.template.spec.containers[0].imagePullPolicy IfNotPresent \
+			| yq w - spec.template.spec.containers[0].image quay.io/gos/gos-$$svc:${OCI_TAG} \
+			| ${K8S_BIN} apply -f - ; \
 	done
 
-ifneq ($(MINIKUBE),true)
-deploy: deploy-other
+ifeq ($(MINIKUBE),false)
+deploy: deploy-quay
 else ifeq ($(OCI_BIN_SHORT),podman)
 deploy: deploy-minikube-podman
 else
@@ -83,23 +86,23 @@ deploy: deploy-minikube
 endif
 
 arrow-scaling-hero-native-vs-hotspot--native: deploy
-	kubectl scale deployment hero-native --replicas=5; \
-	kubectl scale deployment arrow-native --replicas=1; \
-	kubectl scale deployment villains-oj9 --replicas=1;
+	${K8S_BIN} scale deployment hero-native --replicas=5; \
+	${K8S_BIN} scale deployment arrow-native --replicas=1; \
+	${K8S_BIN} scale deployment villains-oj9 --replicas=1;
 
 arrow-scaling-hero-native-vs-hotspot--hotspot: deploy
-	kubectl scale deployment hero-hotspot --replicas=5; \
-	kubectl scale deployment arrow-native --replicas=1; \
-	kubectl scale deployment villains-oj9 --replicas=1;
+	${K8S_BIN} scale deployment hero-hotspot --replicas=5; \
+	${K8S_BIN} scale deployment arrow-native --replicas=1; \
+	${K8S_BIN} scale deployment villains-oj9 --replicas=1;
 
 arrow-scaling-hero-native-vs-hotspot--mixed: deploy
-	kubectl scale deployment hero-native --replicas=2; \
-	kubectl scale deployment hero-hotspot --replicas=2; \
-	kubectl scale deployment arrow-native --replicas=1; \
-	kubectl scale deployment villains-oj9 --replicas=1;
+	${K8S_BIN} scale deployment hero-native --replicas=2; \
+	${K8S_BIN} scale deployment hero-hotspot --replicas=2; \
+	${K8S_BIN} scale deployment arrow-native --replicas=1; \
+	${K8S_BIN} scale deployment villains-oj9 --replicas=1;
 
 scale-service:
-	kubectl scale deployment $$svc --replicas=$(count)
+	${K8S_BIN} scale deployment $$svc --replicas=$(count)
 
 expose:
 	@echo "URL: http://localhost:8081/"
