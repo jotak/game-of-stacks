@@ -4,7 +4,8 @@ import demo.gos.common.Fire
 import io.smallrye.reactive.messaging.annotations.Channel
 import io.smallrye.reactive.messaging.annotations.Emitter
 import io.vertx.core.json.JsonObject
-import java.util.*
+import org.eclipse.microprofile.config.inject.ConfigProperty
+import java.security.SecureRandom
 import java.util.logging.Logger
 import javax.inject.Inject
 import javax.ws.rs.Consumes
@@ -18,9 +19,10 @@ class Arrow {
     companion object {
         val LOG: Logger = Logger.getLogger(Arrow::class.java.name)
     }
+    val RND = SecureRandom()
 
-    val id = "ARROW-Q-" + UUID.randomUUID().toString()
-
+    @ConfigProperty(name = "accuracy", defaultValue = "0.5")
+    var accuracy: Double? = null
 
     @Inject
     @Channel("display")
@@ -34,7 +36,9 @@ class Arrow {
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     fun fire(fire: Fire) {
-        killSingleEmitter.send(JsonObject().put("id", fire.target.id))
+        if(RND.nextDouble() < accuracy!!) {
+            killSingleEmitter.send(JsonObject().put("id", fire.target.id))
+        }
     }
 
     private fun display(fire: Fire) {
