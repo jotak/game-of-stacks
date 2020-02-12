@@ -88,3 +88,7 @@ Next steps:
 
 kubectl label namespace default istio-injection=enabled
 
+## Resources
+
+- https://blog.oio.de/2020/01/13/high-performance-at-low-cost-choose-the-best-jvm-and-the-best-garbage-collector-for-your-needs/
+
