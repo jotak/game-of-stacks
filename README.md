@@ -18,22 +18,22 @@ A little hint.. Long live to Java!
 - With docker-compose:
 
 ```bash
-make start-kafka
+$ make start-kafka
 ```
 
 - From local installation (example)
 
 ```bash
-cd ~/apps/kafka_2.12-2.3.0/
-bin/zookeeper-server-start.sh config/zookeeper.properties
+$ cd ~/apps/kafka_2.12-2.3.0/
+$ bin/zookeeper-server-start.sh config/zookeeper.properties
 # Open new terminal
-bin/kafka-server-start.sh config/server.properties 
+$ bin/kafka-server-start.sh config/server.properties 
 ```
 
 ### GoS services
 
 ```bash
-make clean install start-web
+$ make clean install start-web
 # then Open http://localhost:8081
 $ make start
 ```
@@ -45,20 +45,20 @@ Assuming minikube is up and running
 
 ```bash
 # Deploy Strimzi/Kafka in namespace "kafka"
-make deploy-kafka
+$ make deploy-kafka
 
 # Build GoS
-make clean build build-native
+$ make clean build build-native
 
 # Build docker images & deploy
 ## For docker:
-make docker deploy
+$ make docker deploy
 
 ## For podman:
-make podman deploy
+$ make podman deploy
 
 # Expose (port-forward)
-make expose
+$ make expose
 # Then open browser on http://localhost:8081
 ```
 
@@ -66,13 +66,13 @@ It starts with all deployments scaled to 0, except the web interface. To start t
 
 ```bash
 # Deploys 5 heroes (native), arrows (native), villains (oj9)
-make arrow-scaling-hero-native-vs-hotspot--native
+$ make arrow-scaling-hero-native-vs-hotspot--native
 
 # Redeploys with 5 heroes (hotspot), arrows (native), villains (oj9)
-make arrow-scaling-hero-native-vs-hotspot--hotspot
+$ make arrow-scaling-hero-native-vs-hotspot--hotspot
 
 # Redeploys with 4 heroes (mix hotspot/native), arrows (native), villains (oj9)
-make arrow-scaling-hero-native-vs-hotspot--mixed
+$ make arrow-scaling-hero-native-vs-hotspot--mixed
 ```
 
 
