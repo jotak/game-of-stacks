@@ -40,14 +40,29 @@ make deploy-kafka
 make clean build build-native
 
 # Build docker images & deploy
+## For docker:
 MINIKUBE=true make docker deploy
+
+## For podman:
+MINIKUBE=true make podman deploy
 
 # Expose (port-forward)
 make expose
 # Then open browser on http://localhost:8081
 ```
 
-At the moment, only UI and Villains are deployed. See comments in Makefile for more options.
+It starts with all deployments scaled to 0, except the web interface. To start the demo:
+
+```bash
+# Deploys 5 heroes (native), arrows (native), villains (oj9)
+make arrow-scaling-hero-native-vs-hotspot--native
+
+# Redeploys with 5 heroes (hotspot), arrows (native), villains (oj9)
+make arrow-scaling-hero-native-vs-hotspot--hotspot
+
+# Redeploys with 4 heroes (mix hotspot/native), arrows (native), villains (oj9)
+make arrow-scaling-hero-native-vs-hotspot--mixed
+```
 
 ## Build native image
 

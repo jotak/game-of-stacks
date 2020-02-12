@@ -82,20 +82,30 @@ else
 deploy: deploy-minikube
 endif
 
-arrow-scaling-hero-native-vs-hotspot--native: deploy-minikube
-	make scale-service svc=hero-native count=5; \
-	make scale-service svc=arrow-native count=1; \
-	make scale-service svc=villains-oj9 count=1;
+reset:
+	kubectl scale deployment hero-native --replicas=0; \
+	kubectl scale deployment hero-hotspot --replicas=0; \
+	kubectl scale deployment arrow-native --replicas=0; \
+	kubectl scale deployment villains-oj9 --replicas=0;
 
-arrow-scaling-hero-native-vs-hotspot--hotspot: deploy-minikube
-	make scale-service svc=hero-hotspot count=5; \
-	make scale-service svc=arrow-native count=1; \
-	make scale-service svc=villains-oj9 count=1;
+arrow-scaling-hero-native-vs-hotspot--native: reset
+	kubectl scale deployment hero-native --replicas=5; \
+	kubectl scale deployment arrow-native --replicas=1; \
+	kubectl scale deployment villains-oj9 --replicas=1;
+
+arrow-scaling-hero-native-vs-hotspot--hotspot: reset
+	kubectl scale deployment hero-hotspot --replicas=5; \
+	kubectl scale deployment arrow-native --replicas=1; \
+	kubectl scale deployment villains-oj9 --replicas=1;
+
+arrow-scaling-hero-native-vs-hotspot--mixed: reset
+	kubectl scale deployment hero-native --replicas=2; \
+	kubectl scale deployment hero-hotspot --replicas=2; \
+	kubectl scale deployment arrow-native --replicas=1; \
+	kubectl scale deployment villains-oj9 --replicas=1;
 
 scale-service:
-	 kubectl get deployment $$svc -o yaml \
-    		| yq w - spec.replicas $(count) \
-    		| kubectl apply -f - ; \
+	kubectl scale deployment $$svc --replicas=$(count)
 
 expose:
 	@echo "URL: http://localhost:8081/"
