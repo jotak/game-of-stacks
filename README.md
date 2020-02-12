@@ -1,5 +1,15 @@
 # game-of-stacks
-This simulation game will show the power of different stacks (Quarkus, Vert.x, ..) depending on the business logic and show the results using Istio and Kiali. This will be presented as fun simulation UI showing the attack of Winterfell by a group of microservices :-) 
+Did you know that you can do native with Java? And Quarkus makes it so easy to flip! Our presentation will compare different way of running a Quarkus Java service (GraalVM, Hotspot) using the monitoring power of Kiali. This will be presented as fun simulation game showing the attack of Winterfell by a group of scary microservices. We’ll try to keep trolls out of the battle. :-)
+
+When you ask someone about what they think about Java, you often get answers like:
+“Java use too much memory”
+“With Java the startup time is so slow”
+“Why would we need a JVM now that we do containers”
+
+Well with this demo, you are going to change your mind and see that now with Java you have the best of both world (native/non native) and you can just flip from one to the other in the blink of an eye (just close your eyes at native build time:). 
+
+Who is going to take the Iron Thrones?
+A little hint.. Long live to Java!
 
 ## Running locally
 
@@ -8,7 +18,7 @@ This simulation game will show the power of different stacks (Quarkus, Vert.x, .
 - With docker-compose:
 
 ```bash
-cd kafka && docker-compose up
+make start-kafka
 ```
 
 - From local installation (example)
@@ -23,10 +33,11 @@ bin/kafka-server-start.sh config/server.properties
 ### GoS services
 
 ```bash
-make clean install start
+make clean install start-web
+# then Open http://localhost:8081
+$ make start
 ```
 
-Open http://localhost:8081
 
 ## Running on Minikube
 
@@ -41,10 +52,10 @@ make clean build build-native
 
 # Build docker images & deploy
 ## For docker:
-MINIKUBE=true make docker deploy
+make docker deploy
 
 ## For podman:
-MINIKUBE=true make podman deploy
+make podman deploy
 
 # Expose (port-forward)
 make expose
@@ -62,17 +73,6 @@ make arrow-scaling-hero-native-vs-hotspot--hotspot
 
 # Redeploys with 4 heroes (mix hotspot/native), arrows (native), villains (oj9)
 make arrow-scaling-hero-native-vs-hotspot--mixed
-```
-
-## Build native image
-
-Configure GraalVM for Quarkus:
-https://quarkus.io/guides/building-native-image#configuring-graalvm
-
-Then from a Quarkus maven project (hero, catapult-quarkus, ...)
-```
-$ mvn clean package -Pnative
-$ docker build -f src/main/docker/Dockerfile.native -t hero-native .     
 ```
 
 
