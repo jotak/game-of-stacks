@@ -46,6 +46,8 @@ docker:
 podman:
 	for svc in ${SERVICES} ; do \
 		podman build -t ${OCI_DOMAIN}/gos/gos-$$svc:${OCI_TAG} -f ./k8s/$$svc.dockerfile ./ ; \
+		podman tag ${OCI_DOMAIN}/gos/gos-$$svc:${OCI_TAG} localhost:5000/gos/gos-$$svc:${OCI_TAG} ; \
+		podman push --tls-verify=false ${OCI_DOMAIN}/gos/gos-$$svc:${OCI_TAG} ; \
 	done
 
 deploy-kafka:
@@ -61,8 +63,6 @@ deploy-minikube: .ensure-yq
 
 deploy-minikube-podman: .ensure-yq
 	for svc in ${SERVICES} ; do \
-		podman tag ${OCI_DOMAIN}/gos/gos-$$svc:${OCI_TAG} localhost:5000/gos/gos-$$svc:${OCI_TAG} ; \
-		podman push --tls-verify=false ${OCI_DOMAIN}/gos/gos-$$svc:${OCI_TAG} ; \
 		cat k8s/$$svc.yml \
 			| yq w - spec.template.spec.containers[0].imagePullPolicy Always \
 			| yq w - spec.template.spec.containers[0].image localhost:5000/gos/gos-$$svc:${OCI_TAG} \
@@ -82,23 +82,17 @@ else
 deploy: deploy-minikube
 endif
 
-reset:
-	kubectl scale deployment hero-native --replicas=0; \
-	kubectl scale deployment hero-hotspot --replicas=0; \
-	kubectl scale deployment arrow-native --replicas=0; \
-	kubectl scale deployment villains-oj9 --replicas=0;
-
-arrow-scaling-hero-native-vs-hotspot--native: reset
+arrow-scaling-hero-native-vs-hotspot--native: deploy
 	kubectl scale deployment hero-native --replicas=5; \
 	kubectl scale deployment arrow-native --replicas=1; \
 	kubectl scale deployment villains-oj9 --replicas=1;
 
-arrow-scaling-hero-native-vs-hotspot--hotspot: reset
+arrow-scaling-hero-native-vs-hotspot--hotspot: deploy
 	kubectl scale deployment hero-hotspot --replicas=5; \
 	kubectl scale deployment arrow-native --replicas=1; \
 	kubectl scale deployment villains-oj9 --replicas=1;
 
-arrow-scaling-hero-native-vs-hotspot--mixed: reset
+arrow-scaling-hero-native-vs-hotspot--mixed: deploy
 	kubectl scale deployment hero-native --replicas=2; \
 	kubectl scale deployment hero-hotspot --replicas=2; \
 	kubectl scale deployment arrow-native --replicas=1; \
