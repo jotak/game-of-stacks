@@ -37,6 +37,8 @@ spec:
           value: my-cluster-kafka-bootstrap.kafka:9092
         - name: QUARKUS_HTTP_PORT
           value: "8080"
+        - name: ACCURACY
+          value: "0.06"
         securityContext:
           privileged: false
 ---
