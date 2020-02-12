@@ -39,7 +39,7 @@ spec:
           value: "0"
         - name: KAFKA_BOOTSTRAP_SERVERS
           value: my-cluster-kafka-bootstrap.kafka:9092
-        - name: ARROW_API_MP-REST_URL
+        - name: ARROW_API_MP_REST_URL
           value: http://arrow:8080
         - name: USE_BOW
           value: "true"
