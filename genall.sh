@@ -12,10 +12,10 @@ fi
 # Forward options
 OPTS="$*"
 
-./gentpl.sh web-hotspot -r quarkus $OPTS
-./gentpl.sh villains-oj9 -r vertx $OPTS
-./gentpl.sh catapult-vertx-hotspot -r vertx $OPTS
+./gentpl.sh web-j11hotspot -r quarkus $OPTS
+./gentpl.sh villains-j11oj9 -r vertx $OPTS
+./gentpl.sh catapult-vertx-j11hotspot -r vertx $OPTS
 ./gentpl.sh arrow-native -r quarkus $OPTS
-./gentpl.sh arrow-hotspot -r quarkus $OPTS
+./gentpl.sh arrow-j11hotspot -r quarkus $OPTS
 ./gentpl.sh hero-native -r quarkus $OPTS
-./gentpl.sh hero-hotspot -r quarkus $OPTS
+./gentpl.sh hero-j11hotspot -r quarkus $OPTS

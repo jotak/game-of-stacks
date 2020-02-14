@@ -73,9 +73,14 @@ make arrow-scaling-hero-native-vs-hotspot--native
 make arrow-scaling-hero-native-vs-hotspot--hotspot
 
 # Redeploys with 4 heroes (mix hotspot/native), arrows (native), villains (oj9)
-make arrow-scaling-hero-native-vs-hotspot--mixed
-```
+make start-mixed
 
+# With more villains
+make more-villains start-mixed
+
+# MUCH more villains
+make much-more-villains start-mixed
+```
 
 ## TODO
 
