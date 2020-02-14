@@ -11,10 +11,16 @@ OCI_BIN_SHORT = $(shell if [[ ${OCI_BIN} == *"podman" ]]; then echo "podman"; el
 OCI_TAG ?= dev
 # Set MINIKUBE=true if you want to deploy to minikube (using registry addons)
 MINIKUBE ?= true
-ifeq ($(MINIKUBE),true)
-OCI_DOMAIN ?= "$(shell minikube ip):5000"
-else
+
+ifeq ($(MINIKUBE),false)
 OCI_DOMAIN ?= quay.io
+PULL_POLICY ?= "IfNotPresent"
+else ifeq ($(OCI_BIN_SHORT),podman)
+OCI_DOMAIN ?= "$(shell minikube ip):5000"
+PULL_POLICY ?= "Always"
+else
+OCI_DOMAIN ?= ""
+PULL_POLICY ?= "Never"
 endif
 
 .ensure-yq:
@@ -55,35 +61,8 @@ deploy-kafka:
 	curl -L https://github.com/strimzi/strimzi-kafka-operator/releases/download/${STRIMZI_VERSION}/strimzi-cluster-operator-${STRIMZI_VERSION}.yaml | sed 's/namespace: .*/namespace: kafka/'   | ${K8S_BIN} apply -f - -n kafka
 	${K8S_BIN} apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/${STRIMZI_VERSION}/examples/kafka/kafka-persistent-single.yaml -n kafka
 
-deploy-minikube: .ensure-yq
-	for svc in ${SERVICES} ; do \
-		cat k8s/$$svc.yml \
-			| ${K8S_BIN} apply -f - ; \
-	done
-
-deploy-minikube-podman: .ensure-yq
-	for svc in ${SERVICES} ; do \
-		cat k8s/$$svc.yml \
-			| yq w - spec.template.spec.containers[0].imagePullPolicy Always \
-			| yq w - spec.template.spec.containers[0].image localhost:5000/gos/gos-$$svc:${OCI_TAG} \
-			| ${K8S_BIN} apply -f - ; \
-	done
-
-deploy-quay: .ensure-yq
-	for svc in ${SERVICES} ; do \
-		cat k8s/$$svc.yml \
-			| yq w - spec.template.spec.containers[0].imagePullPolicy IfNotPresent \
-			| yq w - spec.template.spec.containers[0].image quay.io/gos/gos-$$svc:${OCI_TAG} \
-			| ${K8S_BIN} apply -f - ; \
-	done
-
-ifeq ($(MINIKUBE),false)
-deploy: deploy-quay
-else ifeq ($(OCI_BIN_SHORT),podman)
-deploy: deploy-minikube-podman
-else
-deploy: deploy-minikube
-endif
+deploy: .ensure-yq
+	./genall.sh -pp ${PULL_POLICY} -d "${OCI_DOMAIN}" -t ${OCI_TAG} | ${K8S_BIN} apply -f -
 
 arrow-scaling-hero-native-vs-hotspot--native: deploy
 	${K8S_BIN} scale deployment hero-native --replicas=5; \
@@ -100,6 +79,12 @@ arrow-scaling-hero-native-vs-hotspot--mixed: deploy
 	${K8S_BIN} scale deployment hero-hotspot --replicas=2; \
 	${K8S_BIN} scale deployment arrow-native --replicas=1; \
 	${K8S_BIN} scale deployment villains-oj9 --replicas=1;
+
+more-villains:
+	./gentpl.sh villains-oj9 -pp ${PULL_POLICY} -d "${OCI_DOMAIN}" -t ${OCI_TAG} \
+    	| yq w - "spec.template.spec.containers[0].env.(name==WAVES_SIZE).value" "\"30\"" \
+    	| yq w - "spec.template.spec.containers[0].env.(name==WAVES_COUNT).value" "\"4\"" \
+		| ${K8S_BIN} apply -f -
 
 scale-service:
 	${K8S_BIN} scale deployment $$svc --replicas=$(count)

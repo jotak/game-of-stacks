@@ -3,16 +3,16 @@ kind: Deployment
 metadata:
   labels:
     project: gos
-    type: web
-    app: web
-    version: v1-native
-  name: web
+    type: game-object
+    app: arrow
+    version: base
+  name: arrow
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
-      app: web
-      version: v1-native
+      app: arrow
+      version: base
   template:
     metadata:
       annotations:
@@ -20,35 +20,37 @@ spec:
         prometheus.io/scheme: "http"
       labels:
         project: gos
-        type: web
-        app: web
-        version: v1-native
+        type: game-object
+        app: arrow
+        version: base
     spec:
       containers:
-      - image: gos/gos-web-native:dev
+      - image:
         imagePullPolicy: Never
-        name: web-native
+        name: arrow
         ports:
-        - containerPort: 8081
+        - containerPort: 8080
           name: http
           protocol: TCP
         env:
         - name: KAFKA_BOOTSTRAP_SERVERS
           value: my-cluster-kafka-bootstrap.kafka:9092
+        - name: QUARKUS_HTTP_PORT
+          value: "8080"
         securityContext:
           privileged: false
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: web
+  name: arrow
   labels:
     project: gos
-    type: web
-    app: web
+    type: game-object
+    app: arrow
 spec:
   ports:
     - name: http
-      port: 8081
+      port: 8080
   selector:
-    app: web
+    app: arrow

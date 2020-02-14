@@ -5,14 +5,14 @@ metadata:
     project: gos
     type: web
     app: web
-    version: v1
+    version: base
   name: web
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: web
-      version: v1
+      version: base
   template:
     metadata:
       annotations:
@@ -22,12 +22,12 @@ spec:
         project: gos
         type: web
         app: web
-        version: v1
+        version: base
     spec:
       containers:
-      - image: gos/gos-web-hotspot:dev
+      - image:
         imagePullPolicy: Never
-        name: ui
+        name: web
         ports:
         - containerPort: 8081
           name: http

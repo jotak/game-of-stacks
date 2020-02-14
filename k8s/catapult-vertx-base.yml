@@ -4,15 +4,16 @@ metadata:
   labels:
     project: gos
     type: game-object
-    app: villains
-    version: v1
-  name: villains-oj9
+    app: catapult
+    runtime: vertx
+    version: base
+  name: catapult-vertx
 spec:
   replicas: 0
   selector:
     matchLabels:
-      app: villains
-      version: v1
+      app: catapult
+      version: base
   template:
     metadata:
       annotations:
@@ -22,13 +23,14 @@ spec:
       labels:
         project: gos
         type: game-object
-        app: villains
-        version: v1
+        app: catapult
+        runtime: vertx
+        version: base
     spec:
       containers:
-        - image: gos/gos-villains-oj9:dev
+        - image:
           imagePullPolicy: Never
-          name: villains
+          name: catapult-vertx
           ports:
             - containerPort: 8081
               name: http
@@ -44,34 +46,20 @@ spec:
               value: "-Dvertx.disableDnsResolver=true"
             - name: KAFKA_ADDRESS
               value: my-cluster-kafka-bootstrap.kafka:9092
-            - name: WAVES_SIZE
-              value: "30"
-            - name: WAVES_DELAY
-              value: "10"
-            - name: WAVES_COUNT
-              value: "4"
           securityContext:
             privileged: false
-#          readinessProbe:
-#            exec:
-#              command:
-#                - curl
-#                - localhost:8081/health
-#            initialDelaySeconds: 10
-#            periodSeconds: 5
-#            timeoutSeconds: 1
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: villains
+  name: catapult
   labels:
     project: gos
     type: game-object
-    app: villains
+    app: catapult
 spec:
   ports:
     - name: http
       port: 8081
   selector:
-    app: villains
+    app: catapult
