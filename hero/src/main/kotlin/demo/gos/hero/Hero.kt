@@ -103,7 +103,7 @@ class Hero {
             timer.schedule(DELTA_MS) {
                 // Move to the weapon area
                 val pos = position.get()
-                position.set(Point(Areas.spawnWeaponArea.x, pos.y()))
+                position.set(GameObjects.startingPoint(RND, Areas.spawnWeaponArea, null, pos.y()))
             }
         }
     }
