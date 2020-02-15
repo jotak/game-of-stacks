@@ -1,7 +1,7 @@
 VERSION := 0.0.1
 STRIMZI_VERSION := 0.16.0
 # List of all services (for image building / deploying)
-SERVICES ?= web-j11hotspot villains-j11oj9 catapult-vertx-j11hotspot arrow-native arrow-j11hotspot hero-native hero-j11hotspot
+SERVICES ?= web-j11hotspot villains-j11oj9 catapult-vertx-j11hotspot arrow-j11hotspot hero-native hero-j11hotspot
 # Kube's CLI (kubectl or oc)
 K8S_BIN ?= $(shell which kubectl 2>/dev/null || which oc 2>/dev/null)
 # OCI CLI (docker or podman)
@@ -40,8 +40,8 @@ install:
 	mvn install -DskipTests
 
 build-native:
-	mvn package -f hero/pom.xml -Pnative -Dquarkus.native.container-build=true -DskipTests -Dnative-image.xmx=5g -Dquarkus.native.container-runtime=${OCI_BIN_SHORT}; \
-	mvn package -f arrow/pom.xml -Pnative -Dquarkus.native.container-build=true -DskipTests -Dnative-image.xmx=5g -Dquarkus.native.container-runtime=${OCI_BIN_SHORT};
+	mvn package -f hero/pom.xml -Pnative -Dquarkus.native.container-build=true -DskipTests -Dnative-image.xmx=5g -Dquarkus.native.container-runtime=${OCI_BIN_SHORT};
+#	mvn package -f arrow/pom.xml -Pnative -Dquarkus.native.container-build=true -DskipTests -Dnative-image.xmx=5g -Dquarkus.native.container-runtime=${OCI_BIN_SHORT};
 
 test:
 	mvn test
@@ -70,24 +70,24 @@ deploy: .ensure-yq
 reset:
 	${K8S_BIN} scale deployment hero-native --replicas=0; \
 	${K8S_BIN} scale deployment hero-j11hotspot --replicas=0; \
-	${K8S_BIN} scale deployment arrow-native --replicas=0; \
+	${K8S_BIN} scale deployment arrow-j11hotspot --replicas=0; \
 	${K8S_BIN} scale deployment villains-j11oj9 --replicas=0;
 
 arrow-scaling-hero-native-vs-hotspot--native: reset
 	${K8S_BIN} scale deployment hero-native --replicas=5; \
-	${K8S_BIN} scale deployment arrow-native --replicas=1; \
+	${K8S_BIN} scale deployment arrow-j11hotspot --replicas=1; \
 	${K8S_BIN} scale deployment villains-j11oj9 --replicas=1;
 
 arrow-scaling-hero-native-vs-hotspot--hotspot: reset
 	${K8S_BIN} scale deployment hero-j11hotspot --replicas=5; \
-	${K8S_BIN} scale deployment arrow-native --replicas=1; \
+	${K8S_BIN} scale deployment arrow-j11hotspot --replicas=1; \
 	${K8S_BIN} scale deployment villains-j11oj9 --replicas=1;
 
 start-mixed:
 	${K8S_BIN} delete pods -l type=game-object
 	${K8S_BIN} scale deployment hero-native --replicas=2; \
 	${K8S_BIN} scale deployment hero-j11hotspot --replicas=2; \
-	${K8S_BIN} scale deployment arrow-native --replicas=1; \
+	${K8S_BIN} scale deployment arrow-j11hotspot --replicas=1; \
 	${K8S_BIN} scale deployment villains-j11oj9 --replicas=1;
 
 more-villains:

@@ -263,13 +263,21 @@
 	"trimmed": false,
 	"spriteSourceSize": {"x":0,"y":0,"w":32,"h":32},
 	"sourceSize": {"w":32,"h":32}
+},
+"arrow.png":
+{
+	"frame": {"x":1046,"y":0,"w":32,"h":32},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":32,"h":32},
+	"sourceSize": {"w":32,"h":32}
 }},
 "meta": {
 	"app": "https://www.codeandweb.com/texturepacker",
 	"version": "1.0",
 	"image": "players.png",
 	"format": "RGBA8888",
-	"size": {"w":1046,"h":32},
+	"size": {"w":1078,"h":32},
 	"scale": "0.4",
 	"smartupdate": "$TexturePacker:SmartUpdate:43453d1501ee33f5edab4a05e9f44c35:0d036f026252506b5561f0902e72709f:46e8da22ce863765fb0bab090ed87b34$"
 }

@@ -121,18 +121,35 @@ function displayGameObject(obj) {
     } else {
         const sprite = new PIXI.Sprite(players[obj.sprite + ".png"]);
         console.log(`Creating object ${obj.id} with sprite ${obj.sprite} at ${obj.x}, ${obj.y}`)
-        sprite.x = obj.x;
-        sprite.y = obj.y;
         sprite.anchor.x = 0.5;
         sprite.anchor.y = 0.5;
         sprite.scale.x = -1;
-        elements[obj.id] = {
-            id: obj.id,
-            spriteName: obj.sprite,
-            sprite,
-            time: Date.now(),
-        }
         app.stage.addChild(sprite);
+        if (obj.tween) {
+            putInDirection(sprite, obj.tween.x, sprite.x);
+            const tween = PIXI.tweenManager.createTween(sprite);
+            tween.time = obj.tween.time;
+            tween.easing = PIXI.tween.Easing.linear();
+            tween.from({
+                x: obj.x,
+                y: obj.y
+            });
+            tween.to({
+                x: obj.tween.x,
+                y: obj.tween.y
+            });
+            tween.on('end', () => app.stage.removeChild(sprite));
+            tween.start();
+        } else {
+            sprite.x = obj.x;
+            sprite.y = obj.y;
+            elements[obj.id] = {
+                id: obj.id,
+                spriteName: obj.sprite,
+                sprite,
+                time: Date.now(),
+            }
+        }
     }
 }
 
