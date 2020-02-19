@@ -10,7 +10,6 @@ import kotlin.math.atan
 import kotlin.math.min
 import kotlin.math.tan
 
-const val DELTA_MS: Long = 200
 val X = System.getenv("X")?.toDouble()
 val Y = System.getenv("Y")?.toDouble()
 val LOAD_FACTOR = Commons.getDoubleEnv("LOAD_FACTOR", 0.01)
@@ -25,7 +24,7 @@ abstract class BaseCatapult(protected val id: String, private val colorize: (Dou
   private val rnd = SecureRandom()
   private val pos = GameObjects.startingPoint(rnd, Areas.spawnWeaponArea, X, Y)
   private var boulders = mutableListOf<BaseBoulder>()
-  private var target: Noise? = null
+  private var target: PerceivedNoise? = null
   private var gauge = Gauge(1.0, fun() { shoot() })
   private var isPaused = false
   private var isLoading = AtomicBoolean(false)
@@ -50,6 +49,7 @@ abstract class BaseCatapult(protected val id: String, private val colorize: (Dou
 
   protected suspend fun update(delta: Double) {
     if (!isPaused) {
+      target?.fade()
       makeNoise(Noise.fromPoint(id, pos))
       val newBoulders = boulders.filter { !it.update(delta) }
       boulders = newBoulders.toMutableList()
@@ -80,19 +80,18 @@ abstract class BaseCatapult(protected val id: String, private val colorize: (Dou
 
   // listen to noise; when target seems more interesting than the current one, take it instead
   protected fun listenToVillains(noise: Noise) {
+    val perceived = PerceivedNoise.create(noise, pos)
     val currentTarget = target
     if (currentTarget == null) {
-      target = noise
+      target = perceived
     } else {
-      if (noise.id == currentTarget.id) {
+      if (noise.id == currentTarget.noise.id) {
         // Update target position
-        target = noise
+        target = perceived
       } else {
-        val currentStrength = currentTarget.strength(pos)
-        val newStrength = noise.strength(pos)
-        // 5% chances to get attention
-        if (newStrength > currentStrength && rnd.nextInt(100) < 5) {
-          target = noise
+        // 10% chances to get attention
+        if (perceived.isStrongerThan(currentTarget) && rnd.nextInt(100) < 10) {
+          target = perceived
         }
       }
     }
@@ -107,7 +106,7 @@ abstract class BaseCatapult(protected val id: String, private val colorize: (Dou
         angle *= -1
       }
       // Is in range?
-      val segToDest = Segment(pos, t.toPoint())
+      val segToDest = Segment(pos, t.noise.toPoint())
       val shootSize = min(segToDest.size(), SHOT_RANGE)
       val dest = segToDest.derivate().normalize().rotate(angle).mult(shootSize).add(pos)
       val boulder = createBoulder(pos, dest, SPEED, IMPACT_ZONE)

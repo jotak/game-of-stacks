@@ -3,6 +3,7 @@ package demo.gos.villains
 import demo.gos.common.Circle
 import demo.gos.common.Commons
 import demo.gos.common.Noise
+import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
 import io.vertx.core.logging.Logger
 import io.vertx.core.logging.LoggerFactory
@@ -31,10 +32,11 @@ class VillainsVerticle : CoroutineVerticle() {
 
   override suspend fun start() {
     val kafkaProducer = KafkaProducer.create<String, JsonObject>(vertx, Commons.kafkaConfigProducer)
+    val kafkaDisplayProducer = KafkaProducer.create<String, JsonArray>(vertx, Commons.kafkaArrayConfigProducer)
     // Waves scheduler
     gameLoopId = vertx.setPeriodic(DELTA_MS) {
       GlobalScope.launch(vertx.dispatcher()) {
-        update(DELTA_MS.toDouble() / 1000.0, kafkaProducer)
+        update(DELTA_MS.toDouble() / 1000.0, kafkaProducer, kafkaDisplayProducer)
       }
     }
 
@@ -50,9 +52,16 @@ class VillainsVerticle : CoroutineVerticle() {
       .subscribe("kill-single").handler { onKillSingle(it.value()) }
   }
 
-  private suspend fun update(delta: Double, kafkaProducer: KafkaProducer<String, JsonObject>) {
+  private suspend fun update(delta: Double, kafkaProducer: KafkaProducer<String, JsonObject>, kafkaDisplayProducer: KafkaProducer<String, JsonArray>) {
     villains.removeIf { it.garbage }
     villains.forEach { it.update(delta, paused) }
+    val displayData = villains.map { it.getDisplayData() }
+
+    kotlin.runCatching {
+      kafkaDisplayProducer.writeAwait(KafkaProducerRecord.create("display", JsonArray(displayData)))
+    }.onFailure {
+      LOGGER.error("Display error", it)
+    }
 
     if (ended || paused) {
       return

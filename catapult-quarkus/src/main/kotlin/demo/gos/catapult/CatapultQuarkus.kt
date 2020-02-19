@@ -8,6 +8,7 @@ import io.quarkus.runtime.ShutdownEvent
 import io.quarkus.runtime.StartupEvent
 import io.smallrye.reactive.messaging.annotations.Channel
 import io.smallrye.reactive.messaging.annotations.Emitter
+import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
 import kotlinx.coroutines.runBlocking
 import org.eclipse.microprofile.reactive.messaging.Incoming
@@ -39,7 +40,7 @@ class CatapultQuarkus : BaseCatapult("CATA-Q-" + UUID.randomUUID().toString(), c
 
   @Inject
   @Channel("display")
-  lateinit var displayEmitter: Emitter<JsonObject>
+  lateinit var displayEmitter: Emitter<JsonArray>
 
   @Inject
   @Channel("kill-around")
@@ -99,6 +100,6 @@ class CatapultQuarkus : BaseCatapult("CATA-Q-" + UUID.randomUUID().toString(), c
   }
 
   override suspend fun display(data: DisplayData) {
-    displayEmitter.send(JsonObject.mapFrom(data))
+    displayEmitter.send(JsonArray(listOf(data)))
   }
 }

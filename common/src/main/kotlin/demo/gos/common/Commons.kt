@@ -9,6 +9,12 @@ object Commons {
     "value.serializer" to "io.vertx.kafka.client.serialization.JsonObjectSerializer",
     "acks" to "0"
   )
+  @JvmStatic val kafkaArrayConfigProducer: Map<String, String> = mapOf(
+    "bootstrap.servers" to kafkaAddress,
+    "key.serializer" to "org.apache.kafka.common.serialization.StringSerializer",
+    "value.serializer" to "io.vertx.kafka.client.serialization.JsonArraySerializer",
+    "acks" to "0"
+  )
 
   @JvmStatic val kafkaConfigConsumer = fun(groupId: String): Map<String, String> {
     return mapOf(

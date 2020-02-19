@@ -5,13 +5,17 @@ eb.onopen = function () {
   console.log('onopen')
   eb.registerHandler('displayGameObject', function (err, msg) {
     if (err) {
-        console.log(err);
+      console.log(err);
     }
-    displayGameObject(msg.body);
+    if (msg.body) {
+      for (var i in msg.body) {
+        displayGameObject(msg.body[i]);
+      }
+    }
   });
   eb.registerHandler('endGame', function (err, msg) {
     if (err) {
-        console.log(err);
+      console.log(err);
     }
     endGame(msg.body);
   });

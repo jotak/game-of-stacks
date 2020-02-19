@@ -5,6 +5,7 @@ import demo.gos.common.Commons
 import demo.gos.common.DisplayData
 import demo.gos.common.maths.Point
 import io.vertx.core.Vertx
+import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
 import io.vertx.kafka.client.producer.KafkaProducer
 import io.vertx.kafka.client.producer.KafkaProducerRecord
@@ -14,6 +15,7 @@ import java.util.*
 class Boulder(vertx: Vertx, initPos: Point, destPos: Point, speed: Double, impactZone: Double)
     : BaseBoulder("BOULDER-VX-" + UUID.randomUUID().toString(), initPos, destPos, speed, impactZone) {
   private val kafkaProducer = KafkaProducer.create<String, JsonObject>(vertx, Commons.kafkaConfigProducer)
+  private val kafkaDisplayProducer = KafkaProducer.create<String, JsonArray>(vertx, Commons.kafkaArrayConfigProducer)
 
   override suspend fun killAround(zone: Circle) {
     kotlin.runCatching {
@@ -26,7 +28,7 @@ class Boulder(vertx: Vertx, initPos: Point, destPos: Point, speed: Double, impac
 
   override suspend fun display(data: DisplayData) {
     kotlin.runCatching {
-      kafkaProducer.writeAwait(KafkaProducerRecord.create("display", JsonObject.mapFrom(data)))
+      kafkaDisplayProducer.writeAwait(KafkaProducerRecord.create("display", JsonArray(listOf(data))))
     }.onFailure {
       LOGGER.error("Display error", it)
     }

@@ -4,6 +4,7 @@ import io.smallrye.reactive.messaging.annotations.Channel;
 import io.smallrye.reactive.messaging.annotations.Emitter;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.bridge.PermittedOptions;
 import io.vertx.ext.web.Router;
@@ -44,8 +45,8 @@ public class Web {
     }
 
     @Incoming("display")
-    public void display(JsonObject o) {
-        vertx.eventBus().publish("displayGameObject", o);
+    public void display(JsonArray arr) {
+        vertx.eventBus().publish("displayGameObject", arr);
     }
 
     @Incoming("gameover")

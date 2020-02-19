@@ -2,16 +2,19 @@ package demo.gos.hero
 
 import demo.gos.common.*
 import demo.gos.common.maths.Point
+import demo.gos.common.maths.Segment
 import io.quarkus.runtime.ShutdownEvent
 import io.quarkus.runtime.StartupEvent
 import io.reactivex.Flowable
 import io.smallrye.reactive.messaging.annotations.Channel
 import io.smallrye.reactive.messaging.annotations.Emitter
 import io.smallrye.reactive.messaging.annotations.OnOverflow
+import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
 import org.apache.commons.lang3.RandomStringUtils
 import org.eclipse.microprofile.config.inject.ConfigProperty
 import org.eclipse.microprofile.reactive.messaging.Incoming
+import org.eclipse.microprofile.rest.client.inject.RestClient
 import java.security.SecureRandom
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
@@ -35,7 +38,7 @@ class Hero {
     }
 
     val timer = Timer()
-    val RND = SecureRandom()
+    private val rnd = SecureRandom()
 
     @ConfigProperty(name = "X")
     lateinit var X: Optional<Double>
@@ -52,12 +55,21 @@ class Hero {
     @ConfigProperty(name = "use-bow", defaultValue = "false")
     lateinit var useBow: Provider<Boolean>
 
-    @ConfigProperty(name = "accuracy", defaultValue = "0.7")
+    @ConfigProperty(name = "accuracy", defaultValue = "0.5")
     lateinit var accuracy: Provider<Double>
 
-    @ConfigProperty(name = "speed", defaultValue = "90.0")
+    @ConfigProperty(name = "burst", defaultValue = "1")
+    lateinit var burst: Provider<Long>
+
+    @ConfigProperty(name = "range", defaultValue = "400")
+    var range: Double = 400.0
+
+    @ConfigProperty(name = "speed", defaultValue = "70.0")
     lateinit var speed: Provider<Double>
 
+    @Inject
+    @field: RestClient
+    lateinit var arrowService: Arrow
 
     private val id = AtomicReference<String>()
     private val name = AtomicReference<String>()
@@ -65,7 +77,9 @@ class Hero {
     private val randomDest = AtomicReference<Point>()
     private val dead = AtomicBoolean(false)
 
-    private val targetCatapult = AtomicReference<Noise>()
+    private val target = AtomicReference<PerceivedNoise>()
+    private val targetCatapult = AtomicReference<PerceivedNoise>()
+    private val bow = AtomicReference<Bow>()
 
     val initialized = AtomicBoolean(false)
     val position = AtomicReference<Point>()
@@ -78,7 +92,7 @@ class Hero {
 
     @Inject
     @Channel("display")
-    lateinit var displayEmitter: Emitter<JsonObject>
+    lateinit var displayEmitter: Emitter<JsonArray>
 
     @Inject
     @Channel("load-weapon")
@@ -89,23 +103,31 @@ class Hero {
     @Channel("weapon-making-noise")
     lateinit var weaponMakingNoiseFlowable: Flowable<JsonObject>
 
+    @Inject
+    @Channel("villain-making-noise")
+    lateinit var villainMakingNoiseFlowable: Flowable<JsonObject>
+
     fun onStart(@Observes e: StartupEvent) {
         reset()
         LOG.info("$id has joined the game (${position.get().x()}, ${position.get().y()}) ${if(useBow.get()) "with a bow" else ""}")
         initialized.set(true)
-        timer.scheduleAtFixedRate(0L, DELTA_MS) {
+        timer.scheduleAtFixedRate(DELTA_MS, DELTA_MS) {
             scheduled()
         }
-        if (!useBow.get()) {
-            weaponMakingNoiseFlowable
-                    .takeUntil { targetCatapult.get() != null }
-                    .subscribe { weaponMakingNoise(it) }
-        } else {
+        if (useBow.get()) {
+            villainMakingNoiseFlowable
+                    .subscribe { listenToVillains(it.mapTo(Noise::class.java)) }
+
+            bow.set(Bow(arrowService))
             timer.schedule(DELTA_MS) {
                 // Move to the weapon area
                 val pos = position.get()
-                position.set(GameObjects.startingPoint(RND, Areas.spawnWeaponArea, null, pos.y()))
+                position.set(GameObjects.startingPoint(rnd, Areas.spawnHeroesArea, null, pos.y()))
             }
+        } else {
+            weaponMakingNoiseFlowable
+                    .takeUntil { targetCatapult.get() != null }
+                    .subscribe { weaponMakingNoise(it) }
         }
     }
 
@@ -116,7 +138,7 @@ class Hero {
     fun scheduled() {
         if (!paused.get() && !dead.get()) {
             makeNoise()
-            val catapult = targetCatapult.get()
+            val catapult = targetCatapult.get()?.noise
             if (catapult != null) {
                 if (isOn(catapult)) {
                     loadCatapult(catapult)
@@ -124,7 +146,12 @@ class Hero {
                     walkTo(catapult)
                 }
             } else if (useBow.get() && !ended.get()) {
-                // TODO: walk toward villains
+                walkToRange()
+                val b = bow.get()
+                val t = target.get()
+                if (b != null && t != null) {
+                    b.fire(position.get(), t.noise, burst.get(), accuracy.get(), range)
+                }
             } else {
                 walkRandom()
             }
@@ -142,7 +169,7 @@ class Hero {
 
     private fun walkTo(noise: Noise) {
         position.set(Players.walk(
-                rnd = RND,
+                rnd = rnd,
                 pos = position.get(),
                 dest = noise.toPoint(),
                 accuracy = accuracy.get(),
@@ -150,12 +177,12 @@ class Hero {
                 delta = DELTA_MS.toDouble() / 1000
         ))
 
-        LOG.finest("$id at ${position.get()} walking toward ${noise}")
+        LOG.finest("$id at ${position.get()} walking toward $noise")
     }
 
     private fun walkRandom() {
         val positions = Players.walkRandom(
-                rnd = RND,
+                rnd = rnd,
                 pos = position.get(),
                 dest = randomDest.get(),
                 accuracy = accuracy.get(),
@@ -166,6 +193,36 @@ class Hero {
         randomDest.set(positions.second)
 
         LOG.finest("$id at ${position.get()} walking randomly")
+    }
+
+    private fun walkToRange() {
+        val t = target.get()
+        if (t != null) {
+            val seg = Segment(position.get(), t.noise.toPoint())
+            val dist = seg.size()
+            if (dist > range) {
+                // Walk toward target
+                position.set(Players.walk(
+                        rnd = rnd,
+                        pos = position.get(),
+                        dest = t.noise.toPoint(),
+                        accuracy = accuracy.get(),
+                        speed = speed.get(),
+                        delta = DELTA_MS.toDouble() / 1000
+                ))
+            } else if (dist < 200) {
+                // Too close, move back!
+                val dest = Areas.arena.fitInto(position.get().add(seg.derivate().mult(-1.0)))
+                position.set(Players.walk(
+                        rnd = rnd,
+                        pos = position.get(),
+                        dest = dest,
+                        accuracy = accuracy.get(),
+                        speed = speed.get(),
+                        delta = DELTA_MS.toDouble() / 1000
+                ))
+            }
+        }
     }
 
     private fun isOn(noise: Noise): Boolean {
@@ -182,7 +239,13 @@ class Hero {
                 label = id.get()
         )
         val json = JsonObject.mapFrom(data)
-        displayEmitter.send(json)
+        val b = bow.get()
+        if (b != null) {
+            val jsonBow = JsonObject.mapFrom(b.getDisplayData(position.get()))
+            displayEmitter.send(JsonArray(listOf(json, jsonBow)))
+        } else {
+            displayEmitter.send(JsonArray(listOf(data)))
+        }
     }
 
     @Incoming("controls")
@@ -208,14 +271,15 @@ class Hero {
     }
 
     private fun reset() {
-        name.set(configName.orElse(HEROES[RND.nextInt(HEROES.size)]))
-        id.set("${name.get()}-${runtime.orElse("")}-${RandomStringUtils.random(3, 0, 0, true, true, null, RND)}")
+        name.set(configName.orElse(HEROES[rnd.nextInt(HEROES.size)]))
+        id.set("${name.get()}-${runtime.orElse("")}-${RandomStringUtils.random(3, 0, 0, true, true, null, rnd)}")
         paused.set(false)
         dead.set(false)
         ended.set(false)
-        position.set(GameObjects.startingPoint(RND, Areas.spawnWeaponArea, null, Y.orElse(null)))
+        position.set(GameObjects.startingPoint(rnd, Areas.spawnHeroesArea, null, Y.orElse(null)))
         targetCatapult.set(null)
         randomDest.set(null)
+        target.set(null)
     }
 
     fun weaponMakingNoise(o: JsonObject) {
@@ -224,16 +288,14 @@ class Hero {
         }
         val noise = o.mapTo(Noise::class.java)
         LOG.finest("$id received weapon noise: $noise")
+        val perceived = PerceivedNoise.create(noise, position.get())
         val currentTarget = targetCatapult.get()
         if (currentTarget == null) {
             // New target
-            targetCatapult.set(noise)
-        } else if (!isOn(currentTarget)) {
-            val pos = position.get()
-            val currentStrength = currentTarget.strength(pos)
-            val newStrength = noise.strength(pos)
-            if (newStrength > currentStrength) {
-                targetCatapult.set(noise)
+            targetCatapult.set(perceived)
+        } else if (!isOn(currentTarget.noise)) {
+            if (perceived.isStrongerThan(currentTarget)) {
+                targetCatapult.set(perceived)
             }
         }
     }
@@ -269,5 +331,31 @@ class Hero {
 
     private fun makeNoise() {
         heroNoiseEmitter.send(JsonObject.mapFrom(Noise.fromPoint(id.get(), position.get())))
+        // Also decrease heard noises
+        targetCatapult.get()?.fade()
+        target.get()?.fade()
+    }
+
+    private fun listenToVillains(noise: Noise) {
+        if (!initialized.get() || paused.get()) {
+            return
+        }
+        val perceived = PerceivedNoise.create(noise, position.get())
+        target.getAndUpdate {
+            if (it == null) {
+                return@getAndUpdate perceived
+            } else {
+                if (noise.id == it.noise.id) {
+                    // Update target position
+                    return@getAndUpdate perceived
+                } else {
+                    // 40% chances to get attention
+                    if (perceived.isStrongerThan(it) && rnd.nextInt(100) < 40) {
+                        return@getAndUpdate perceived
+                    }
+                    return@getAndUpdate it
+                }
+            }
+        }
     }
 }
