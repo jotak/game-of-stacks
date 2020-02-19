@@ -123,7 +123,9 @@ class Hero {
                 } else {
                     walkTo(catapult)
                 }
-            } else if (!useBow.get() || ended.get()) {
+            } else if (useBow.get() && !ended.get()) {
+                // TODO: walk toward villains
+            } else {
                 walkRandom()
             }
         }
@@ -183,9 +185,8 @@ class Hero {
         displayEmitter.send(json)
     }
 
-    @Incoming("game")
-    fun game(o: JsonObject) {
-        println("onGameControls: $o")
+    @Incoming("controls")
+    fun controls(o: JsonObject) {
         if (!initialized.get()) {
             return
         }
@@ -195,8 +196,15 @@ class Hero {
             "play" -> paused.set(false)
             "pause" -> paused.set(true)
             "reset" -> reset()
-            "end" -> ended.set(true)
         }
+    }
+
+    @Incoming("gameover")
+    fun gameover(o: JsonObject) {
+        if (!initialized.get()) {
+            return
+        }
+        ended.set(true)
     }
 
     private fun reset() {
@@ -205,7 +213,7 @@ class Hero {
         paused.set(false)
         dead.set(false)
         ended.set(false)
-        position.set(GameObjects.startingPoint(RND, Areas.spawnHeroesArea, X.orElse(null), Y.orElse(null)))
+        position.set(GameObjects.startingPoint(RND, Areas.spawnWeaponArea, null, Y.orElse(null)))
         targetCatapult.set(null)
         randomDest.set(null)
     }

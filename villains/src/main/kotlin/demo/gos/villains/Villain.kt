@@ -12,7 +12,6 @@ import java.util.*
 
 const val DELTA_MS = 1000L
 const val RANGE = 30.0
-const val TARGET_COUNTDOWN = 3
 val SPEED = Commons.getDoubleEnv("SPEED", 35.0)
 // Accuracy [0, 1]
 val ACCURACY = Commons.getDoubleEnv("ACCURACY", 0.7)
@@ -24,39 +23,26 @@ class Villain(private val kafkaProducer: KafkaProducer<String, JsonObject>) {
   private var pos = Areas.spawnVillainsArea.spawn(RND)
   private var randomDest: Point? = null
   private var target: Noise? = null
-  private var targetCountDown = 0
+  private var silentTargetTimer: Gauge? = null
+  private val maxLifeTimer = Gauge(60.0, fun() { isDead = true })
+  private val deadTimer = Gauge(3.0, fun() { garbage = true })
   var isDead = false
-  private var isPaused = false
-  var stopped = false
-  private val deadTimer = Gauge(3.0, fun() { stop() })
-  private val maxLifeTimer = Gauge(60.0, fun() { stop() })
-
-  fun onGameControls(json: JsonObject) {
-    when (json.getString("type")) {
-      "play" -> isPaused = false
-      "pause" -> isPaused = true
-    }
-  }
-
-  fun stop() {
-    stopped = true
-  }
+  var garbage = false
 
   // listen to heroes noise to detect if a good target is available
-  fun listenToHeroes(json: JsonObject) {
-    val noise = json.mapTo(Noise::class.java)
+  fun listenToHeroes(noise: Noise) {
     val noisePos = noise.toPoint()
     val currentTarget = target
 
     if (currentTarget == null) {
       LOGGER.info("A Villain has elected a target at $noisePos")
       target = noise
-      targetCountDown = TARGET_COUNTDOWN
+      silentTargetTimer = Gauge(3.0, fun() { target = null })
     } else {
       if (noise.id == currentTarget.id) {
         // Update target position
         target = noise
-        targetCountDown = TARGET_COUNTDOWN
+        silentTargetTimer?.reset()
       } else {
         val currentStrength = currentTarget.strength(pos)
         val newStrength = noise.strength(pos)
@@ -64,28 +50,26 @@ class Villain(private val kafkaProducer: KafkaProducer<String, JsonObject>) {
         if (newStrength > currentStrength && RND.nextInt(100) < 5) {
           LOGGER.info("A Villain has elected a different target at $noisePos")
           target = noise
-          targetCountDown = TARGET_COUNTDOWN
+          silentTargetTimer?.reset()
         }
       }
     }
   }
 
-  fun onKillAround(json: JsonObject) {
+  fun onKillAround(zone: Circle) {
     if (isDead) {
       return
     }
-    val zone = json.mapTo(Circle::class.java)
     if (zone.contains(pos)) {
       LOGGER.info("Aaaarrrrhggg!!!! (Today, a villain has died)")
       isDead = true
     }
   }
 
-  fun onKillSingle(json: JsonObject) {
+  fun onKillSingle(killed: String) {
     if (isDead) {
       return
     }
-    val killed = json.getString("id")
     if (id == killed) {
       LOGGER.info("Aaaarrrrhggg!!!! (Today, a villain has died)")
       isDead = true
@@ -94,10 +78,12 @@ class Villain(private val kafkaProducer: KafkaProducer<String, JsonObject>) {
     }
   }
 
-  suspend fun update(delta: Double) {
+  suspend fun update(delta: Double, isPaused: Boolean) {
     if (isDead) {
       deadTimer.add(delta)
     } else if (!isPaused) {
+      maxLifeTimer.add(delta)
+      silentTargetTimer?.add(delta)
       val t = target
       if (t != null) {
         pos = Players.walk(RND, pos, t.toPoint(), SPEED, ACCURACY, delta)
@@ -119,13 +105,6 @@ class Villain(private val kafkaProducer: KafkaProducer<String, JsonObject>) {
       }
     }
     display()
-    if (targetCountDown >= 0) {
-      targetCountDown--
-    } else if (target != null) {
-      LOGGER.info("A villain had no sign from the current target for a while")
-      target = null
-    }
-    maxLifeTimer.add(delta)
   }
 
   private suspend fun display() {

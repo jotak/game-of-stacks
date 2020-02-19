@@ -2,7 +2,6 @@ package demo.gos.web;
 
 import io.smallrye.reactive.messaging.annotations.Channel;
 import io.smallrye.reactive.messaging.annotations.Emitter;
-import io.smallrye.reactive.messaging.annotations.Merge;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.JsonObject;
@@ -15,7 +14,6 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
-import java.util.Objects;
 
 @ApplicationScoped
 public class Web {
@@ -23,7 +21,7 @@ public class Web {
     private Vertx vertx;
 
     @Inject
-    @Channel("game")
+    @Channel("controls")
     private Emitter<JsonObject> gameEmitter;
 
     public void init(@Observes Router router) {
@@ -50,12 +48,9 @@ public class Web {
         vertx.eventBus().publish("displayGameObject", o);
     }
 
-    @Incoming("game")
-    @Merge(Merge.Mode.MERGE)
-    public void game(JsonObject o) {
-        if(Objects.equals(o.getString("type"), "end")) {
-            vertx.eventBus().publish("endGame", new JsonObject().put("winner", o.getString("winner")));
-        }
+    @Incoming("gameover")
+    public void gameover(JsonObject o) {
+        vertx.eventBus().publish("endGame", new JsonObject().put("winner", o.getString("winner")));
     }
 
     private void publishGameEvent(String type) {
