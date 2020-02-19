@@ -85,9 +85,12 @@ class Villain(private val kafkaProducer: KafkaProducer<String, JsonObject>) {
     if (isDead) {
       return
     }
-    if (id == json.getString("id")) {
+    val killed = json.getString("id")
+    if (id == killed) {
       LOGGER.info("Aaaarrrrhggg!!!! (Today, a villain has died)")
       isDead = true
+    } else if (target?.id == killed) {
+      target = null
     }
   }
 

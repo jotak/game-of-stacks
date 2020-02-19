@@ -23,18 +23,13 @@ public class Web {
     private Vertx vertx;
 
     @Inject
-    private EventBus eventBus;
-
-    @Inject
     @Channel("game")
     private Emitter<JsonObject> gameEmitter;
 
     public void init(@Observes Router router) {
         BridgeOptions opts = new BridgeOptions()
             .addOutboundPermitted(new PermittedOptions().setAddress("displayGameObject"))
-            .addOutboundPermitted(new PermittedOptions().setAddress("removeGameObject"))
             .addOutboundPermitted(new PermittedOptions().setAddress("endGame"))
-            .addInboundPermitted(new PermittedOptions().setAddress("init-session"))
             .addInboundPermitted(new PermittedOptions().setAddress("play"))
             .addInboundPermitted(new PermittedOptions().setAddress("pause"))
             .addInboundPermitted(new PermittedOptions().setAddress("reset"));
@@ -44,15 +39,15 @@ public class Web {
         sockJSHandler.bridge(opts);
         router.route("/eventbus/*").handler(sockJSHandler);
 
-        eventBus.consumer("play", msg -> publishGameEvent("play"));
-        eventBus.consumer("pause", msg -> publishGameEvent("pause"));
-        eventBus.consumer("reset", msg -> publishGameEvent("reset"));
-
+        EventBus eb = vertx.eventBus();
+        eb.consumer("play", msg -> publishGameEvent("play"));
+        eb.consumer("pause", msg -> publishGameEvent("pause"));
+        eb.consumer("reset", msg -> publishGameEvent("reset"));
     }
 
     @Incoming("display")
     public void display(JsonObject o) {
-        displayGameObject(o);
+        vertx.eventBus().publish("displayGameObject", o);
     }
 
     @Incoming("game")
@@ -64,10 +59,7 @@ public class Web {
     }
 
     private void publishGameEvent(String type) {
+        System.out.println("Publishing: " + type);
         gameEmitter.send(new JsonObject().put("type", type));
-    }
-
-    private void displayGameObject(JsonObject json) {
-        vertx.eventBus().publish("displayGameObject", json);
     }
 }

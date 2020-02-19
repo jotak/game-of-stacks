@@ -67,6 +67,8 @@ function explode(x, y) {
 function resetGame() {
     elements = {};
     app.stage.removeChildren();
+    $("#endbanner").remove();
+    ended = false;
 }
 
 function removeGameObject(obj) {
@@ -78,7 +80,7 @@ function removeGameObject(obj) {
 }
 
 function displayGameObject(obj) {
-    if (!players || ended) {
+    if (!players) {
         return;
     }
     if (elements[obj.id]) {
@@ -158,9 +160,8 @@ function endGame(body) {
         return;
     }
     ended = true;
-    resetGame();
-    $("#container").append($(`<div id="winner"><b>${body.winner}</b><br />WON THE IRON THRONES</div>`));
-    $("#container").addClass("ended").addClass(body.winner)
+    $("#container").append($(`<div id="endbanner"><div id="winner"><b>${body.winner}</b><br />WON THE IRON THRONES</div></div>`));
+    $("#endbanner").addClass(body.winner)
 }
 
 function gameLoop(delta) {

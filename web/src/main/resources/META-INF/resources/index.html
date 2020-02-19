@@ -87,18 +87,22 @@
       height: 768px;
       z-index: 1;
     }
-    #container.ended {
-      background-image: none;
+    #endbanner {
+      display: block;
+      position: absolute;
+      left: calc(50% - 512px);
+      top: calc(50% - 100px);
+      width: 1024px;
+      height: 200px;
+      border-top: 2px solid;
+      border-bottom: 2px solid;
+      z-index: 1;
     }
-    #container.ended.villains {
+    #endbanner.villains {
       background-color: red;
     }
-    #container.ended.heroes {
+    #endbanner.heroes {
       background-color: #F7ECAA;
-    }
-
-    .ended #control {
-      display: none;
     }
 
     canvas {

@@ -65,11 +65,12 @@ class Hero {
     private val randomDest = AtomicReference<Point>()
     private val dead = AtomicBoolean(false)
 
-    private val targetWeapon = AtomicReference<Noise>()
+    private val targetCatapult = AtomicReference<Noise>()
 
     val initialized = AtomicBoolean(false)
     val position = AtomicReference<Point>()
     val paused = AtomicBoolean(false)
+    val ended = AtomicBoolean(false)
 
     @Inject
     @Channel("hero-making-noise")
@@ -97,7 +98,7 @@ class Hero {
         }
         if (!useBow.get()) {
             weaponMakingNoiseFlowable
-                    .takeUntil { targetWeapon.get() != null }
+                    .takeUntil { targetCatapult.get() != null }
                     .subscribe { weaponMakingNoise(it) }
         } else {
             timer.schedule(DELTA_MS) {
@@ -115,41 +116,39 @@ class Hero {
     fun scheduled() {
         if (!paused.get() && !dead.get()) {
             makeNoise()
-            if (targetWeapon.get() != null) {
-                if (isOnWeapon()) {
-                    loadWeapon()
+            val catapult = targetCatapult.get()
+            if (catapult != null) {
+                if (isOn(catapult)) {
+                    loadCatapult(catapult)
                 } else {
-                    walk()
+                    walkTo(catapult)
                 }
-            } else if(!useBow.get()) {
+            } else if (!useBow.get() || ended.get()) {
                 walkRandom()
             }
         }
         display()
     }
 
-    private fun loadWeapon() {
-        val t = targetWeapon.get()
-        if (t != null) {
-            kotlin.runCatching {
-                loadWeaponEmitter.send(JsonObject().put("id", t.id).put("val", 1))
-            }.onFailure {
-                LOG.warning("Error while loading weapon: ${it.message}")
-            }
+    private fun loadCatapult(catapult: Noise) {
+        kotlin.runCatching {
+            loadWeaponEmitter.send(JsonObject().put("id", catapult.id).put("val", 1))
+        }.onFailure {
+            LOG.warning("Error while loading weapon: ${it.message}")
         }
     }
 
-    private fun walk() {
+    private fun walkTo(noise: Noise) {
         position.set(Players.walk(
                 rnd = RND,
                 pos = position.get(),
-                dest = targetWeapon.get().toPoint(),
+                dest = noise.toPoint(),
                 accuracy = accuracy.get(),
                 speed = speed.get(),
                 delta = DELTA_MS.toDouble() / 1000
         ))
 
-        LOG.finest("$id at ${position.get()} walking toward ${targetWeapon.get()}")
+        LOG.finest("$id at ${position.get()} walking toward ${noise}")
     }
 
     private fun walkRandom() {
@@ -167,12 +166,8 @@ class Hero {
         LOG.finest("$id at ${position.get()} walking randomly")
     }
 
-    private fun isOnWeapon(): Boolean {
-        val t = targetWeapon.get()
-        if (t != null) {
-            return Circle.fromCenter(position.get(), 20.0).contains(t.toPoint())
-        }
-        return false
+    private fun isOn(noise: Noise): Boolean {
+        return Circle.fromCenter(position.get(), 20.0).contains(noise.toPoint())
     }
 
     private fun display() {
@@ -190,6 +185,7 @@ class Hero {
 
     @Incoming("game")
     fun game(o: JsonObject) {
+        println("onGameControls: $o")
         if (!initialized.get()) {
             return
         }
@@ -199,6 +195,7 @@ class Hero {
             "play" -> paused.set(false)
             "pause" -> paused.set(true)
             "reset" -> reset()
+            "end" -> ended.set(true)
         }
     }
 
@@ -207,8 +204,9 @@ class Hero {
         id.set("${name.get()}-${runtime.orElse("")}-${RandomStringUtils.random(3, 0, 0, true, true, null, RND)}")
         paused.set(false)
         dead.set(false)
+        ended.set(false)
         position.set(GameObjects.startingPoint(RND, Areas.spawnHeroesArea, X.orElse(null), Y.orElse(null)))
-        targetWeapon.set(null)
+        targetCatapult.set(null)
         randomDest.set(null)
     }
 
@@ -218,16 +216,16 @@ class Hero {
         }
         val noise = o.mapTo(Noise::class.java)
         LOG.finest("$id received weapon noise: $noise")
-        val currentTarget = targetWeapon.get()
+        val currentTarget = targetCatapult.get()
         if (currentTarget == null) {
             // New target
-            targetWeapon.set(noise)
-        } else if (!isOnWeapon()) {
+            targetCatapult.set(noise)
+        } else if (!isOn(currentTarget)) {
             val pos = position.get()
             val currentStrength = currentTarget.strength(pos)
             val newStrength = noise.strength(pos)
             if (newStrength > currentStrength) {
-                targetWeapon.set(noise)
+                targetCatapult.set(noise)
             }
         }
     }

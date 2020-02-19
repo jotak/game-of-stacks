@@ -9,13 +9,6 @@ eb.onopen = function () {
     }
     displayGameObject(msg.body);
   });
-  eb.registerHandler('removeGameObject', function (err, msg) {
-    if (err) {
-        console.log(err);
-    }
-    console.log('removeGameObject');
-    removeGameObject(msg.body);
-  });
   eb.registerHandler('endGame', function (err, msg) {
     if (err) {
         console.log(err);
