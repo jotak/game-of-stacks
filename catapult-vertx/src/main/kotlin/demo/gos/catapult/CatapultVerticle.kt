@@ -6,6 +6,7 @@ import demo.gos.common.GameCommand
 import demo.gos.common.Noise
 import demo.gos.common.maths.Point
 import io.vertx.core.Vertx
+import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
 import io.vertx.core.logging.Logger
 import io.vertx.core.logging.LoggerFactory
@@ -48,6 +49,7 @@ class CatapultVerticle : CoroutineVerticle() {
 class Catapult(private val vertx: Vertx, id: String)
     : BaseCatapult(id, colorize) {
   private val kafkaProducer = KafkaProducer.create<String, JsonObject>(vertx, Commons.kafkaConfigProducer)
+  private val kafkaProducerDisplay = KafkaProducer.create<String, JsonArray>(vertx, Commons.kafkaArrayConfigProducer)
 
   init {
     KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
@@ -93,7 +95,7 @@ class Catapult(private val vertx: Vertx, id: String)
 
   override suspend fun display(data: DisplayData) {
     kotlin.runCatching {
-      kafkaProducer.writeAwait(KafkaProducerRecord.create("display", JsonObject.mapFrom(data)))
+      kafkaProducerDisplay.writeAwait(KafkaProducerRecord.create("display", JsonArray(listOf(data))))
     }.onFailure {
       LOGGER.error("Display error", it)
     }

@@ -50,6 +50,8 @@ spec:
               value: "10"
             - name: WAVES_COUNT
               value: "2"
+            - name: SPEED
+              value: "70"
           securityContext:
             privileged: false
 ---

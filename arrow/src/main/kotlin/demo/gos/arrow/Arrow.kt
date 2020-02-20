@@ -7,8 +7,8 @@ import demo.gos.common.Tween
 import demo.gos.common.maths.Segment
 import io.smallrye.reactive.messaging.annotations.Channel
 import io.smallrye.reactive.messaging.annotations.Emitter
+import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
-import org.eclipse.microprofile.config.inject.ConfigProperty
 import java.security.SecureRandom
 import java.util.*
 import java.util.logging.Logger
@@ -26,15 +26,9 @@ class Arrow {
     }
     val rnd = SecureRandom()
 
-    @ConfigProperty(name = "accuracy", defaultValue = "0.5")
-    var accuracy: Double = 0.0
-
-    @ConfigProperty(name = "range", defaultValue = "400")
-    var range: Double = 400.0
-
     @Inject
     @Channel("display")
-    lateinit var displayEmitter: Emitter<JsonObject>
+    lateinit var displayEmitter: Emitter<JsonArray>
 
     @Inject
     @Channel("kill-single")
@@ -47,31 +41,31 @@ class Arrow {
         // Is in range?
         val segToDest = Segment(fire.source.toPoint(), fire.target.toPoint())
         val shootSize = segToDest.size()
-        if (shootSize < range) {
-            if(rnd.nextDouble() < accuracy) {
+        if (shootSize < fire.range) {
+            if (rnd.nextDouble() < fire.accuracy) {
                 killSingleEmitter.send(JsonObject().put("id", fire.target.id))
             }
-            display(fire)
+            display(fire.source, fire.target)
         } else {
             // not in range
-            val dest = segToDest.derivate().normalize().mult(range).add(fire.source.toPoint())
-            display(Fire(fire.source, Noise(fire.target.id, dest.x(), dest.y())))
+            val dest = segToDest.derivate().normalize().mult(fire.range).add(fire.source.toPoint())
+            display(fire.source, Noise(fire.target.id, dest.x(), dest.y()))
         }
     }
 
-    private fun display(fire: Fire) {
+    private fun display(source: Noise, target: Noise) {
         val data = DisplayData(
                 id = "arrow-" + UUID.randomUUID(),
-                x = fire.source.x,
-                y = fire.source.y,
+                x = source.x,
+                y = source.y,
                 sprite = "arrow",
                 tween = Tween(
-                        x = fire.target.x,
-                        y = fire.target.y,
+                        x = target.x,
+                        y = target.y,
                         time = 300.0
                 )
         )
-        val json = JsonObject.mapFrom(data)
+        val json = JsonArray(listOf(data))
         displayEmitter.send(json)
     }
 

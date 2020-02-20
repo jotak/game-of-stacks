@@ -41,6 +41,12 @@ spec:
           value: "true"
         - name: RUNTIME
           value: "quarkus-hotspot"
+        - name: burst
+          value: "1"
+        - name: speed
+          value: "20"
+        - name: accuracy
+          value: "0.3"
         securityContext:
           privileged: false
 ---
