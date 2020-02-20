@@ -4,13 +4,23 @@ import demo.gos.common.DisplayData
 import demo.gos.common.Fire
 import demo.gos.common.Noise
 import demo.gos.common.maths.Point
+import io.quarkus.arc.Unremovable
+import org.eclipse.microprofile.rest.client.inject.RestClient
 import java.util.*
 import java.util.logging.Logger
+import javax.enterprise.context.ApplicationScoped
+import javax.inject.Inject
 
-class Bow(private val arrowService: Arrow) {
+@ApplicationScoped
+@Unremovable
+class Bow {
     companion object {
         val LOG: Logger = Logger.getLogger(Bow::class.java.name)
     }
+
+    @Inject
+    @field: RestClient
+    private lateinit var arrowService: Arrow
 
     private val id = "BOW-Q-" + UUID.randomUUID().toString()
 

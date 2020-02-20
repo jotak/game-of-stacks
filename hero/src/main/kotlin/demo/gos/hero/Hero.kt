@@ -14,13 +14,13 @@ import io.vertx.core.json.JsonObject
 import org.apache.commons.lang3.RandomStringUtils
 import org.eclipse.microprofile.config.inject.ConfigProperty
 import org.eclipse.microprofile.reactive.messaging.Incoming
-import org.eclipse.microprofile.rest.client.inject.RestClient
 import java.security.SecureRandom
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import java.util.logging.Logger
 import javax.enterprise.event.Observes
+import javax.enterprise.inject.spi.CDI
 import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton
@@ -66,10 +66,6 @@ class Hero {
 
     @ConfigProperty(name = "speed", defaultValue = "70.0")
     lateinit var speed: Provider<Double>
-
-    @Inject
-    @field: RestClient
-    lateinit var arrowService: Arrow
 
     private val id = AtomicReference<String>()
     private val name = AtomicReference<String>()
@@ -117,8 +113,7 @@ class Hero {
         if (useBow.get()) {
             villainMakingNoiseFlowable
                     .subscribe { listenToVillains(it.mapTo(Noise::class.java)) }
-
-            bow.set(Bow(arrowService))
+            bow.set(CDI.current().select(Bow::class.java).get())
             timer.schedule(DELTA_MS) {
                 // Move to the weapon area
                 val pos = position.get()

@@ -118,6 +118,7 @@
           <pluginOptions>
             <option>all-open:annotation=javax.ws.rs.Path</option>
             <option>all-open:annotation=javax.inject.Singleton</option>
+            <option>all-open:annotation=javax.enterprise.context.ApplicationScoped</option>
           </pluginOptions>
         </configuration>
       </plugin>
