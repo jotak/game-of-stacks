@@ -56,10 +56,15 @@ docker:
 	for svc in ${SERVICES} ; do \
 		${OCI_BIN_SHORT} build -t ${OCI_DOMAIN}/gos/gos-$$svc:${OCI_TAG} -f ./k8s/$$svc.dockerfile ./ ; \
 		${OCI_BIN_SHORT} tag ${OCI_DOMAIN}/gos/gos-$$svc:${OCI_TAG} localhost:5000/gos/gos-$$svc:${OCI_TAG} ; \
-		${OCI_BIN_SHORT} push --tls-verify=false ${OCI_DOMAIN}/gos/gos-$$svc:${OCI_TAG} ; \
+		${OCI_BIN_SHORT} push ${OCI_DOMAIN}/gos/gos-$$svc:${OCI_TAG} ; \
 	done
 
-podman: docker
+podman:
+	for svc in ${SERVICES} ; do \
+		${OCI_BIN_SHORT} build -t ${OCI_DOMAIN}/gos/gos-$$svc:${OCI_TAG} -f ./k8s/$$svc.dockerfile ./ ; \
+		${OCI_BIN_SHORT} tag ${OCI_DOMAIN}/gos/gos-$$svc:${OCI_TAG} localhost:5000/gos/gos-$$svc:${OCI_TAG} ; \
+		${OCI_BIN_SHORT} push --tls-verify=false ${OCI_DOMAIN}/gos/gos-$$svc:${OCI_TAG} ; \
+	done
 
 deploy-kafka:
 	${K8S_BIN} create namespace kafka
