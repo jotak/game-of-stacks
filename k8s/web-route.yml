@@ -1,0 +1,18 @@
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: web
+  namespace: gos
+  labels:
+    app: web
+    project: gos
+    type: web
+spec:
+  subdomain: ''
+  to:
+    kind: Service
+    name: web
+    weight: 100
+  port:
+    targetPort: http
+  wildcardPolicy: None

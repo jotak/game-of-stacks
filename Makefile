@@ -69,10 +69,13 @@ podman:
 deploy-kafka:
 	${K8S_BIN} create namespace kafka
 	curl -L https://github.com/strimzi/strimzi-kafka-operator/releases/download/${STRIMZI_VERSION}/strimzi-cluster-operator-${STRIMZI_VERSION}.yaml | sed 's/namespace: .*/namespace: kafka/'   | ${K8S_BIN} apply -f - -n kafka
-	${K8S_BIN} apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/${STRIMZI_VERSION}/examples/kafka/kafka-persistent-single.yaml -n kafka
+	${K8S_BIN} apply -f ./k8s/strimzi-kafka-${STRIMZI_VERSION}.yml -n kafka
 
 deploy: .ensure-yq
-	./genall.sh -pp ${PULL_POLICY} -d "${OCI_DOMAIN_IN_CLUSTER}" -t ${OCI_TAG} | ${K8S_BIN} apply -f -
+	./genall.sh -pp ${PULL_POLICY} -d "${OCI_DOMAIN_IN_CLUSTER}" -t ${OCI_TAG} | ${K8S_BIN} apply -f - ;
+ifeq ($(K8S_BIN),oc)
+	${K8S_BIN} apply -f ./k8s/web-route.yml
+endif
 
 reset:
 	${K8S_BIN} scale deployment hero-native --replicas=0; \
