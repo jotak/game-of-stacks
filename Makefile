@@ -78,6 +78,9 @@ deploy-istio:
 	./istioctl manifest apply --set profile=demo ; \
 	rm -r istio-${ISTIO_VERSION}
 
+expose-kiali:
+	./istioctl dashboard kiali
+
 deploy: .ensure-yq
 	./genall.sh -pp ${PULL_POLICY} -d "${OCI_DOMAIN_IN_CLUSTER}" -t ${OCI_TAG} | ${K8S_BIN} apply -f - ;
 ifeq ($(K8S_BIN),oc)
