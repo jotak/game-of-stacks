@@ -1,5 +1,6 @@
 VERSION := 0.0.1
 STRIMZI_VERSION := 0.16.0
+ISTIO_VERSION := 1.4.5
 # List of all services (for image building / deploying)
 SERVICES ?= web-j11hotspot villains-j11oj9 catapult-vertx-j11hotspot arrow-j11hotspot hero-native hero-j11hotspot
 # Kube's CLI (kubectl or oc)
@@ -70,6 +71,12 @@ deploy-kafka:
 	${K8S_BIN} create namespace kafka
 	curl -L https://github.com/strimzi/strimzi-kafka-operator/releases/download/${STRIMZI_VERSION}/strimzi-cluster-operator-${STRIMZI_VERSION}.yaml | sed 's/namespace: .*/namespace: kafka/'   | ${K8S_BIN} apply -f - -n kafka
 	${K8S_BIN} apply -f ./k8s/strimzi-kafka-${STRIMZI_VERSION}.yml -n kafka
+
+deploy-istio:
+	export ISTIO_VERSION=${ISTIO_VERSION} && curl -L https://istio.io/downloadIstio | sh - ; \
+	cp istio-${ISTIO_VERSION}/bin/istioctl . ; \
+	./istioctl manifest apply --set profile=demo ; \
+	rm -r istio-${ISTIO_VERSION}
 
 deploy: .ensure-yq
 	./genall.sh -pp ${PULL_POLICY} -d "${OCI_DOMAIN_IN_CLUSTER}" -t ${OCI_TAG} | ${K8S_BIN} apply -f - ;
