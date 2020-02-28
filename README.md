@@ -91,7 +91,18 @@ Next steps:
 
 ## Istio
 
-kubectl label namespace default istio-injection=enabled
+```
+make deploy-istio
+make enable-istio
+# in new term
+make expose-kiali
+```
+
+To disable:
+
+```
+make disable-istio
+```
 
 ## Resources
 

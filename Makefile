@@ -78,6 +78,14 @@ deploy-istio:
 	./istioctl manifest apply --set profile=demo ; \
 	rm -r istio-${ISTIO_VERSION}
 
+enable-istio:
+	${K8S_BIN} label namespace default istio-injection=enabled ; \
+	${K8S_BIN} delete pods -l project=gos
+
+disable-istio:
+	${K8S_BIN} label namespace default istio-injection- ; \
+	${K8S_BIN} delete pods -l project=gos
+
 expose-kiali:
 	./istioctl dashboard kiali
 
