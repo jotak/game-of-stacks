@@ -12,8 +12,8 @@ import io.vertx.kafka.client.producer.KafkaProducerRecord
 import io.vertx.kotlin.kafka.client.producer.writeAwait
 import java.util.*
 
-class Boulder(vertx: Vertx, initPos: Point, destPos: Point, speed: Double, impactZone: Double)
-    : BaseBoulder("BOULDER-VX-" + UUID.randomUUID().toString(), initPos, destPos, speed, impactZone) {
+class Boulder(id: String, vertx: Vertx, initPos: Point, destPos: Point, speed: Double, impactZone: Double)
+    : BaseBoulder(id, initPos, destPos, speed, impactZone) {
   private val kafkaProducer = KafkaProducer.create<String, JsonObject>(vertx, Commons.kafkaConfigProducer)
   private val kafkaDisplayProducer = KafkaProducer.create<String, JsonArray>(vertx, Commons.kafkaArrayConfigProducer)
 

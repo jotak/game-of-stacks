@@ -12,13 +12,14 @@ import java.util.*
 const val DELTA_MS = 1000L
 const val RANGE = 30.0
 val SPEED = Commons.getDoubleEnv("SPEED", 45.0)
+val RUNTIME = Commons.getStringEnv("RUNTIME", "u")
 // Accuracy [0, 1]
 val ACCURACY = Commons.getDoubleEnv("ACCURACY", 0.7)
 val RND = SecureRandom()
 
 class Villain(private val kafkaProducer: KafkaProducer<String, JsonObject>) {
 
-  private val id = "V-${UUID.randomUUID()}"
+  private val id = "VILLAIN-VERTX-${RUNTIME}-${Players.randomName(RND)}"
   private var pos = Areas.spawnVillainsArea.spawn(RND)
   private var randomDest: Point? = null
   private var target: PerceivedNoise? = null
@@ -76,10 +77,10 @@ class Villain(private val kafkaProducer: KafkaProducer<String, JsonObject>) {
     }
   }
 
-  suspend fun update(delta: Double, isPaused: Boolean) {
+  suspend fun update(delta: Double) {
     if (isDead) {
       deadTimer.add(delta)
-    } else if (!isPaused) {
+    } else {
       maxLifeTimer.add(delta)
       silentTargetTimer?.add(delta)
       target?.fade()

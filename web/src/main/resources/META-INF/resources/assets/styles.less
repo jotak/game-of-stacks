@@ -1,0 +1,177 @@
+@font-face {
+    font-family: 'Game Of Thrones';
+    src: url('got.ttf') format('truetype');
+}
+
+body {
+    font-family: Game Of Thrones;
+    margin: 0;
+    background-color: #111933;
+}
+
+h1 {
+    text-align: center;
+    z-index: 2;
+    color: #2F5069;
+}
+
+.winner {
+    position: absolute;
+    z-index: 3;
+    top: calc(50% - 75px);
+    width: 100%;
+    font-size: 40px;
+    text-align: center;
+
+    b {
+        font-size: 70px;
+    }
+}
+
+.indicators {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    padding-left: 2.5px;
+    z-index: 2;
+    text-align: right;
+    color: black;
+
+    .indicator .name {
+        font-weight: bold;
+        font-size: 20px;
+    }
+
+    .indicator .value {
+        margin-left: 20px;
+        font-size: 50px;
+        font-weight: bold;
+        color: #2F5069;
+    }
+
+}
+
+button {
+    display: inline-block;
+    border: none;
+    margin: 5px 2.5px;
+    padding: 0 20px;
+    height: 40px;
+    line-height: 40px;
+    text-decoration: none;
+    background: #3F5591;
+    color: #ffffff;
+    font-family: sans-serif;
+    font-size: 1rem;
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.1s ease-in-out;
+    outline: none;
+
+    &:hover {
+        background: rgb(36, 48, 82);
+    }
+
+    &:active {
+        background: rgb(57, 62, 78);
+    }
+}
+
+.container {
+    background-image: url(images/bg.jpg);
+    background-repeat: repeat;
+    display: block;
+    position: absolute;
+    left: calc(50% - 512px);
+    top: calc(50% - 384px);
+    width: 1024px;
+    height: 768px;
+    z-index: 1;
+}
+
+.endbanner {
+    display: block;
+    position: absolute;
+    left: calc(50% - 512px);
+    top: calc(50% - 100px);
+    width: 1024px;
+    height: 200px;
+    border-top: 2px solid;
+    border-bottom: 2px solid;
+    z-index: 1;
+
+    .villains & {
+        background-color: red;
+    }
+
+    .heroes & {
+        background-color: #F7ECAA;
+    }
+}
+
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+
+.music {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 30px;
+    width: 30px;
+    margin: 10px;
+    overflow: hidden;
+    display: inline-block;
+
+    span {
+        display: block;
+        width: 8px;
+        height: 8px;
+        background: #111933;
+        margin: 11px 0 0 2px;
+
+        &:after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-color: transparent #111933 transparent transparent;
+            border-width: 10px 14px 10px 15px;
+            left: -13px;
+            top: 5px;
+        }
+
+        &:before {
+            transform: rotate(45deg);
+            border-radius: 0 50px 0 0;
+            content: '';
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            border-style: double;
+            border-color: #111933;
+            border-width: 7px 7px 0 0;
+            left: 18px;
+            top: 9px;
+            transition: all 0.2s ease-out;
+        }
+    }
+
+    &:hover {
+
+        span:before {
+            transform: scale(.8) translate(-3px, 0) rotate(42deg);
+        }
+    }
+
+    &.mute {
+        span:before {
+            transform: scale(.5) translate(-15px, 0) rotate(36deg);
+            opacity: 0;
+        }
+    }
+}

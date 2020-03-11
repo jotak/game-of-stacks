@@ -1,9 +1,6 @@
 package demo.gos.catapult
 
-import demo.gos.common.Commons
-import demo.gos.common.DisplayData
-import demo.gos.common.GameCommand
-import demo.gos.common.Noise
+import demo.gos.common.*
 import demo.gos.common.maths.Point
 import io.vertx.core.Vertx
 import io.vertx.core.json.JsonArray
@@ -23,6 +20,7 @@ import kotlinx.coroutines.launch
 import java.util.*
 
 val LOGGER: Logger = LoggerFactory.getLogger("Catapult-Vertx")
+val RUNTIME = Commons.getStringEnv("RUNTIME", "u")
 // const val PORT = 8889
 const val DELTA_MS: Long = 200
 val colorize = fun(gauge: Double): String {
@@ -35,8 +33,7 @@ class CatapultVerticle : CoroutineVerticle() {
   private lateinit var cata: Catapult
 
   override suspend fun start() {
-    val id = "CATA-VX-" + UUID.randomUUID().toString()
-    cata = Catapult(vertx, id)
+    cata = Catapult(vertx)
 
 //    val router = Router.router(vertx)
 //    router.get("/load").handler { GlobalScope.launch(vertx.dispatcher()) { cata.synchronizer.handle(it.request().getParam("val")?.toDoubleOrNull()) } }
@@ -46,14 +43,14 @@ class CatapultVerticle : CoroutineVerticle() {
   }
 }
 
-class Catapult(private val vertx: Vertx, id: String)
-    : BaseCatapult(id, colorize) {
+class Catapult(private val vertx: Vertx)
+  : BaseCatapult(demo.gos.catapult.colorize) {
+
   private val kafkaProducer = KafkaProducer.create<String, JsonObject>(vertx, Commons.kafkaConfigProducer)
   private val kafkaProducerDisplay = KafkaProducer.create<String, JsonArray>(vertx, Commons.kafkaArrayConfigProducer)
 
   init {
-    KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
-      .subscribe("game").handler { onGameCommand(it.value().mapTo(GameCommand::class.java)) }
+    id = "CATAPULT-VERTX-${RUNTIME}-${Players.randomName(rnd)}"
 
     KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer(id))
       .subscribe("villain-making-noise").handler { listenToVillains(it.value().mapTo(Noise::class.java)) }
@@ -66,7 +63,7 @@ class Catapult(private val vertx: Vertx, id: String)
             loadSyncCatapult(value.getDouble("val"))
           }
         }
-    })
+      })
 
     vertx.setPeriodic(DELTA_MS) {
       GlobalScope.launch(vertx.dispatcher()) {
@@ -89,8 +86,8 @@ class Catapult(private val vertx: Vertx, id: String)
     }
   }
 
-  override fun createBoulder(pos: Point, dest: Point, speed: Double, impact: Double): BaseBoulder {
-    return Boulder(vertx, pos, dest, speed, impact)
+  override fun createBoulder(id: String, pos: Point, dest: Point, speed: Double, impact: Double): BaseBoulder {
+    return Boulder(id, vertx, pos, dest, speed, impact)
   }
 
   override suspend fun display(data: DisplayData) {

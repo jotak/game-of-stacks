@@ -1,8 +1,8 @@
 package demo.gos.catapult
 
 import demo.gos.common.DisplayData
-import demo.gos.common.GameCommand
 import demo.gos.common.Noise
+import demo.gos.common.Players
 import demo.gos.common.maths.Point
 import io.quarkus.runtime.ShutdownEvent
 import io.quarkus.runtime.StartupEvent
@@ -11,6 +11,7 @@ import io.smallrye.reactive.messaging.annotations.Emitter
 import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
 import kotlinx.coroutines.runBlocking
+import org.eclipse.microprofile.config.inject.ConfigProperty
 import org.eclipse.microprofile.reactive.messaging.Incoming
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
@@ -19,9 +20,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.concurrent.scheduleAtFixedRate
 
-
 @Singleton
-class CatapultQuarkus : BaseCatapult("CATA-Q-" + UUID.randomUUID().toString(), colorize) {
+class CatapultQuarkus : BaseCatapult(colorize) {
   companion object {
 
     const val DELTA_MS = 1000L
@@ -33,6 +33,9 @@ class CatapultQuarkus : BaseCatapult("CATA-Q-" + UUID.randomUUID().toString(), c
   }
   val timer = Timer()
   private val initialized = AtomicBoolean(false)
+
+  @ConfigProperty(name = "runtime")
+  lateinit var runtime: Optional<String>
 
   @Inject
   @Channel("weapon-making-noise")
@@ -47,6 +50,7 @@ class CatapultQuarkus : BaseCatapult("CATA-Q-" + UUID.randomUUID().toString(), c
   lateinit var killAroundEmitter: Emitter<JsonObject>
 
   fun onStart(@Observes e: StartupEvent) {
+    id = "CATAPULT-QUARKUS-${runtime.orElse("u")}-${Players.randomName(rnd)}"
     timer.scheduleAtFixedRate(0, DELTA_MS) {
       scheduled()
     }
@@ -61,14 +65,6 @@ class CatapultQuarkus : BaseCatapult("CATA-Q-" + UUID.randomUUID().toString(), c
     runBlocking {
       update(DELTA_MS.toDouble() / 1000.0)
     }
-  }
-
-  @Incoming("game")
-  fun game(o: JsonObject) {
-    if(!initialized.get()) {
-      return
-    }
-    onGameCommand(o.mapTo(GameCommand::class.java))
   }
 
   @Incoming("villain-making-noise")
@@ -95,8 +91,8 @@ class CatapultQuarkus : BaseCatapult("CATA-Q-" + UUID.randomUUID().toString(), c
     noiseEmitter.send(JsonObject.mapFrom(noise))
   }
 
-  override fun createBoulder(pos: Point, dest: Point, speed: Double, impact: Double): BaseBoulder {
-    return Boulder(displayEmitter, killAroundEmitter, pos, dest, speed, impact)
+  override fun createBoulder(id: String, pos: Point, dest: Point, speed: Double, impact: Double): BaseBoulder {
+    return Boulder(id, displayEmitter, killAroundEmitter, pos, dest, speed, impact)
   }
 
   override suspend fun display(data: DisplayData) {

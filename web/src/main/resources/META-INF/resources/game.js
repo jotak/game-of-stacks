@@ -8,12 +8,14 @@ const app = new PIXI.Application({
     transparent: true,
 });
 
-$("#container").append(app.view);
-let ended = false;
+let ended = true;
 let elements = {};
 
 let players;
 const explosion = [];
+const music = new Audio("https://tonelilu.com/n03/Game_of_Thrones_8-Bit_v2_www.Tonelilu.com.mp3");
+music.loop = true;
+music.muted = true;
 
 PIXI.loader
     .add('assets/images/players.json')
@@ -32,12 +34,21 @@ PIXI.loader
         for (let i = 1; i <= 26; i++) {
             explosion.push(PIXI.Texture.from(`explosion${i}.png`));
         }
-
+        $('.container').append(app.view);
         app.renderer.render(app.stage);
-        app.ticker.add(delta => gameLoop(delta));
+        app.ticker.add(() => gameLoop());
+
+        $('.music').click(function(e) {
+            e.preventDefault();
+            $(this).toggleClass('mute');
+            music.muted = $(this).hasClass("mute");
+            if(!ended) {
+                music.play();
+            }
+        });
     });
 
-app.ticker.add(function (delta) {
+app.ticker.add(function () {
     PIXI.tweenManager.update();
 });
 
@@ -64,18 +75,22 @@ function explode(x, y) {
     app.stage.addChild(mc);
 }
 
-function resetGame() {
+function newGame() {
     elements = {};
     app.stage.removeChildren();
-    $("#endbanner").remove();
+    $(".endbanner").remove();
+    $('.container').removeClass("heroes villains");
     ended = false;
+    music.play();
+    whiteWalkers = 0;
+    deadWhiteWalkers = 0;
+    fighters = 0;
+    deadFighters = 0;
 }
 
 function removeGameObject(obj) {
     if (elements[obj.id]) {
         app.stage.removeChild(elements[obj.id].sprite);
-        elements[obj.id] = null;
-        delete elements[obj.id];
     }
 }
 
@@ -88,8 +103,8 @@ function displayGameObject(obj) {
         el.time = Date.now();
         if (!obj.sprite) {
             removeGameObject(obj);
-        } else if (el.spriteName != obj.sprite) {
-            console.log(`Updating ${obj.id} with sprite ${obj.sprite} at ${obj.x}, ${obj.y}`)
+        } else if (el.spriteName !== obj.sprite) {
+            console.log(`Updating ${obj.id} with sprite ${obj.sprite} at ${obj.x}, ${obj.y}`);
             app.stage.removeChild(el.sprite);
             if (obj.sprite === "explode") {
                 explode(obj.x, obj.y);
@@ -122,7 +137,7 @@ function displayGameObject(obj) {
 
     } else {
         const sprite = new PIXI.Sprite(players[obj.sprite + ".png"]);
-        console.log(`Creating object ${obj.id} with sprite ${obj.sprite} at ${obj.x}, ${obj.y}`)
+        console.log(`Creating object ${obj.id} with sprite ${obj.sprite} at ${obj.x}, ${obj.y}`);
         sprite.anchor.x = 0.5;
         sprite.anchor.y = 0.5;
         sprite.scale.x = -1;
@@ -160,15 +175,45 @@ function endGame(body) {
         return;
     }
     ended = true;
-    $("#container").append($(`<div id="endbanner"><div id="winner"><b>${body.winner}</b><br />WON THE IRON THRONES</div></div>`));
-    $("#endbanner").addClass(body.winner)
+    $('.container').append($(`<div class="endbanner"><div class="winner"><b>${body.winner}</b><br />WON THE IRON THRONES</div></div>`));
+    $('.container').addClass(body.winner);
+    music.stop();
 }
 
-function gameLoop(delta) {
+function gameLoop() {
+    let whiteWalkers = 0;
+    let deadWhiteWalkers = 0;
+    let fighters = 0;
+    let deadFighters = 0;
     for (id in elements) {
         const el = elements[id];
-        if (Date.now() - el.time > 5000) {
+        /*if (Date.now() - el.time > 5000) {
             removeGameObject(el);
+        }*/
+        if(el.id.indexOf("HERO") >= 0) {
+            fighters++;
+            if(el.spriteName === "rip") {
+                deadFighters++;
+            }
         }
+        if(el.id.indexOf("VILLAIN") >= 0) {
+            whiteWalkers++;
+            if(el.spriteName === "rip") {
+                deadWhiteWalkers++;
+            }
+        }
+    }
+    const $heroes = $('.indicators .heroes .value');
+    if(fighters === 0) {
+        $heroes.text('0');
+    } else {
+        $heroes.text(`${fighters - deadFighters} / ${fighters}`);
+    }
+
+    const $villains = $('.indicators .villains .value');
+    if(whiteWalkers === 0) {
+        $villains.text('0');
+    } else {
+        $villains.text(`${whiteWalkers - deadWhiteWalkers} / ${whiteWalkers}`);
     }
 }

@@ -267,7 +267,7 @@ class Hero {
 
     private fun reset() {
         name.set(configName.orElse(HEROES[rnd.nextInt(HEROES.size)]))
-        id.set("${name.get()}-${runtime.orElse("")}-${RandomStringUtils.random(3, 0, 0, true, true, null, rnd)}")
+        id.set("HERO-QUARKUS-${name.get()}-${runtime.orElse("u")}-${Players.randomName(rnd)}")
         paused.set(false)
         dead.set(false)
         ended.set(false)

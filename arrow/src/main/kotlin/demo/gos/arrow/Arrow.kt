@@ -1,14 +1,12 @@
 package demo.gos.arrow
 
-import demo.gos.common.DisplayData
-import demo.gos.common.Fire
-import demo.gos.common.Noise
-import demo.gos.common.Tween
+import demo.gos.common.*
 import demo.gos.common.maths.Segment
 import io.smallrye.reactive.messaging.annotations.Channel
 import io.smallrye.reactive.messaging.annotations.Emitter
 import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
+import org.eclipse.microprofile.config.inject.ConfigProperty
 import java.security.SecureRandom
 import java.util.*
 import java.util.logging.Logger
@@ -25,6 +23,9 @@ class Arrow {
         val LOG: Logger = Logger.getLogger(Arrow::class.java.name)
     }
     val rnd = SecureRandom()
+
+    @ConfigProperty(name = "runtime")
+    lateinit var runtime: Optional<String>
 
     @Inject
     @Channel("display")
@@ -55,7 +56,7 @@ class Arrow {
 
     private fun display(source: Noise, target: Noise) {
         val data = DisplayData(
-                id = "arrow-" + UUID.randomUUID(),
+                id = "ARROW-${runtime.orElse("u")}-${Players.randomName(rnd)}",
                 x = source.x,
                 y = source.y,
                 sprite = "arrow",

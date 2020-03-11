@@ -3,130 +3,8 @@
 
 <head>
   <title>Game of Stacks</title>
-  <style>
-    @font-face {
-      font-family: 'Game Of Thrones';
-      src: url('assets/got.ttf') format('truetype');
-    }
-
-    body {
-      font-family: Game Of Thrones;
-      margin: 0;
-      background-color: #111933;
-    }
-
-    h1 {
-      text-align: center;
-      z-index: 2;
-      color: #2F5069;
-    }
-
-    #winner {
-      position: absolute;
-      z-index: 3;
-      top: calc(50% - 75px);
-      width: 100%;
-      font-size: 40px;
-      text-align: center;
-    }
-
-    #winner b {
-      font-size: 70px;
-    }
-
-    #control {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      padding-left: 2.5px;
-      height: 50px;
-      width: 100%;
-      background-color: #5c5c5c84;
-      z-index: 2;
-    }
-
-    audio {
-      display: inline-block;
-      margin: 5px 2.5px;
-    }
-
-    button {
-      display: inline-block;
-      border: none;
-      margin: 5px 2.5px;
-      padding: 0 20px;
-      height: 40px;
-      line-height: 40px;
-      text-decoration: none;
-      background: #3F5591;
-      color: #ffffff;
-      font-family: sans-serif;
-      font-size: 1rem;
-      cursor: pointer;
-      text-align: center;
-      transition: background 0.1s ease-in-out;
-      outline: none;
-    }
-
-    button:hover {
-      background: rgb(36, 48, 82);
-    }
-
-    button:active {
-      background: rgb(57, 62, 78);
-    }
-
-    #container {
-      background-image: url(assets/images/bg.jpg);
-      background-repeat: repeat;
-      display: block;
-      position: absolute;
-      left: calc(50% - 512px);
-      top: calc(50% - 384px);
-      width: 1024px;
-      height: 768px;
-      z-index: 1;
-    }
-    #endbanner {
-      display: block;
-      position: absolute;
-      left: calc(50% - 512px);
-      top: calc(50% - 100px);
-      width: 1024px;
-      height: 200px;
-      border-top: 2px solid;
-      border-bottom: 2px solid;
-      z-index: 1;
-    }
-    #endbanner.villains {
-      background-color: red;
-    }
-    #endbanner.heroes {
-      background-color: #F7ECAA;
-    }
-
-    canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      z-index: 1;
-    }
-  </style>
-</head>
-
-<body>
-  <div id="container">
-    <h1>GAME OF STACKS</h1>
-    <div id="control">
-      <button type="button" onclick="play()">Play</button>
-      <button type="button" onclick="pause()">Pause</button>
-      <button type="button" onclick="reset()">Reset</button>
-      <audio controls src="https://tonelilu.com/n03/Game_of_Thrones_8-Bit_v2_www.Tonelilu.com.mp3">
-        Your browser does not support the <code>audio</code> element.
-      </audio>
-    </div>
-  </div>
-
+  <link rel="stylesheet/less" type="text/css" href="assets/styles.less" />
+  <script src="//cdnjs.cloudflare.com/ajax/libs/less.js/3.9.0/less.min.js"></script>
   <script src="assets/libs/jquery.min.js"></script>
   <script src="assets/libs/sockjs.min.js"></script>
   <script src="assets/libs/vertx-eventbus.js"></script>
@@ -134,6 +12,22 @@
   <script src="assets/libs/pixi-tween.min.js"></script>
   <script src="game.js" type='text/javascript'></script>
   <script src="service.js" type='text/javascript'></script>
-</body>
+</head>
 
+<body>
+  <div class="container">
+    <h1>GAME OF STACKS</h1>
+    <a href="#" class="music mute">
+      <span></span>
+    </a>
+    <div class="indicators">
+      <div class="indicator heroes">
+        <span class="name">Fighters</span><span class="value">0</span>
+      </div>
+      <div class="indicator villains">
+        <span class="name">White walkers</span><span class="value">0</span>
+      </div>
+    </div>
+  </div>
+</body>
 </html>

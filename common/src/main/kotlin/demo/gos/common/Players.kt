@@ -2,10 +2,16 @@ package demo.gos.common
 
 import demo.gos.common.maths.Point
 import demo.gos.common.maths.Segment
+import org.apache.commons.lang3.RandomStringUtils
 import java.security.SecureRandom
 import kotlin.math.min
 
 object Players {
+
+  fun randomName(rnd: SecureRandom): String {
+    return RandomStringUtils.random(3, 0, 0, true, true, null, rnd);
+  }
+
   fun walk(rnd: SecureRandom, pos: Point, dest: Point, speed: Double, accuracy: Double, delta: Double): Point {
     // Speed and angle are modified by accuracy
     val segToDest = Segment(pos, dest)

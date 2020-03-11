@@ -4,6 +4,7 @@ import demo.gos.common.*
 import demo.gos.common.maths.Point
 import demo.gos.common.maths.Segment
 import java.security.SecureRandom
+import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.atan
@@ -20,50 +21,29 @@ val SPEED = Commons.getDoubleEnv("SPEED", 110.0)
 val IMPACT_ZONE = Commons.getDoubleEnv("IMPACT_ZONE", 75.0)
 
 
-abstract class BaseCatapult(protected val id: String, private val colorize: (Double) -> String) {
-  private val rnd = SecureRandom()
+abstract class BaseCatapult(private val colorize: (Double) -> String) {
+  protected var id: String = UUID.randomUUID().toString();
+  protected val rnd = SecureRandom()
   private val pos = GameObjects.startingPoint(rnd, Areas.spawnWeaponArea, X, Y)
   private var boulders = mutableListOf<BaseBoulder>()
   private var target: PerceivedNoise? = null
   private var gauge = Gauge(1.0, fun() { shoot() })
-  private var isPaused = false
   private var isLoading = AtomicBoolean(false)
   private val computedValue = AtomicReference(0.0)
   private val throughput = Throughput.Printer("Load")
   private var throughputSuccess = Throughput.Printer("Success")
 
-  protected fun onGameCommand(command: GameCommand) {
-    when (command.type) {
-      "play" -> isPaused = false
-      "pause" -> isPaused = true
-      "reset" -> reset()
-    }
-  }
-
-  private fun reset() {
-    isPaused = false
-    gauge.reset()
-    target = null
-    boulders = mutableListOf()
-  }
-
   protected suspend fun update(delta: Double) {
-    if (!isPaused) {
-      target?.fade()
-      makeNoise(Noise.fromPoint(id, pos))
-      val newBoulders = boulders.filter { !it.update(delta) }
-      boulders = newBoulders.toMutableList()
-    }
+    target?.fade()
+    makeNoise(Noise.fromPoint(id, pos))
+    val newBoulders = boulders.filter { !it.update(delta) }
+    boulders = newBoulders.toMutableList()
     display()
   }
 
   abstract suspend fun makeNoise(noise: Noise)
 
   fun load(v: Double?): Double? {
-    if (isPaused) {
-      println("Loading aborted (paused)")
-      return null
-    }
     throughput.mark()
     if (isLoading.getAndSet(true)) {
       println("Loading aborted (not ready)")
@@ -109,13 +89,13 @@ abstract class BaseCatapult(protected val id: String, private val colorize: (Dou
       val segToDest = Segment(pos, t.noise.toPoint())
       val shootSize = min(segToDest.size(), SHOT_RANGE)
       val dest = segToDest.derivate().normalize().rotate(angle).mult(shootSize).add(pos)
-      val boulder = createBoulder(pos, dest, SPEED, IMPACT_ZONE)
+      val boulder = createBoulder("$id-BOULDER", pos, dest, SPEED, IMPACT_ZONE)
       boulders.add(boulder)
       target = null
     }
   }
 
-  abstract fun createBoulder(pos: Point, dest: Point, speed: Double, impact: Double): BaseBoulder
+  abstract fun createBoulder(id: String, pos: Point, dest: Point, speed: Double, impact: Double): BaseBoulder
 
   abstract suspend fun display(data: DisplayData)
 

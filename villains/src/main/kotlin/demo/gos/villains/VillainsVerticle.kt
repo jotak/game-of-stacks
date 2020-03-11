@@ -24,7 +24,6 @@ val WAVES_DELAY = Commons.getDoubleEnv("WAVES_DELAY", 20.0)
 class VillainsVerticle : CoroutineVerticle() {
   private var waveTimer = 0.0
   private var wavesCount = 0
-  private var paused = false
   private var ended = false
   private val villains = mutableListOf<Villain>()
   private var gameLoopId: Long? = null
@@ -40,8 +39,12 @@ class VillainsVerticle : CoroutineVerticle() {
       }
     }
 
-    KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer("villains"))
-      .subscribe("controls").handler { onGameControls(it.value()) }
+    kotlin.runCatching {
+      kafkaProducer.writeAwait(KafkaProducerRecord.create("game", JsonObject().put("type", "new-game")))
+    }.onFailure {
+      LOGGER.error("New game error", it)
+    }
+
     KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer("villains"))
       .subscribe("gameover").handler { ended = true }
     KafkaConsumer.create<String, JsonObject>(vertx, Commons.kafkaConfigConsumer("villains"))
@@ -54,7 +57,7 @@ class VillainsVerticle : CoroutineVerticle() {
 
   private suspend fun update(delta: Double, kafkaProducer: KafkaProducer<String, JsonObject>, kafkaDisplayProducer: KafkaProducer<String, JsonArray>) {
     villains.removeIf { it.garbage }
-    villains.forEach { it.update(delta, paused) }
+    villains.forEach { it.update(delta) }
     val displayData = villains.map { it.getDisplayData() }
 
     kotlin.runCatching {
@@ -63,7 +66,7 @@ class VillainsVerticle : CoroutineVerticle() {
       LOGGER.error("Display error", it)
     }
 
-    if (ended || paused) {
+    if (ended) {
       return
     }
 
@@ -82,19 +85,10 @@ class VillainsVerticle : CoroutineVerticle() {
     if (heroesCountDown > 0) {
       heroesCountDown -= delta
       if (heroesCountDown <= 0) {
-        kafkaProducer.writeAwait(KafkaProducerRecord.create("gameover", JsonObject().put("winner", "villains")))
+        kafkaProducer.writeAwait(KafkaProducerRecord.create("game", JsonObject().put("type", "game-over").put("winner", "villains")))
       } else if (wavesCount == WAVES_COUNT && alive().isEmpty()) {
-        kafkaProducer.writeAwait(KafkaProducerRecord.create("gameover", JsonObject().put("winner", "heroes")))
+        kafkaProducer.writeAwait(KafkaProducerRecord.create("game", JsonObject().put("type", "game-over").put("winner", "heroes")))
       }
-    }
-  }
-
-  private fun onGameControls(json: JsonObject) {
-    println("onGameControls: $json")
-    when (json.getString("type")) {
-      "play" -> paused = false
-      "pause" -> paused= true
-      "reset" -> reset()
     }
   }
 
@@ -116,12 +110,4 @@ class VillainsVerticle : CoroutineVerticle() {
 
   private fun alive() = villains.filter { !it.isDead }
 
-  private fun reset() {
-    villains.clear()
-    paused = false
-    waveTimer = 0.0
-    wavesCount = 0
-    heroesCountDown = -1.0
-    ended = false
-  }
 }

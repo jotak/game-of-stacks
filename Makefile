@@ -118,7 +118,7 @@ simu-scaling-hero-native-vs-hotspot--hotspot: reset
 	${K8S_BIN} scale deployment arrow-j11hotspot --replicas=1; \
 	${K8S_BIN} scale deployment villains-j11oj9 --replicas=1;
 
-start-mixed:
+simu-mixed:
 	${K8S_BIN} delete pods -l type=game-object
 	${K8S_BIN} scale deployment hero-native --replicas=2; \
 	${K8S_BIN} scale deployment hero-j11hotspot --replicas=2; \
@@ -163,16 +163,13 @@ restart-pods-go:
 	${K8S_BIN} delete pods -l project=gos -l type=game-object
 
 start-villains:
-	export WAVES_DELAY=15 WAVES_SIZE=30 WAVES_COUNT=5 && java -jar ./villains/target/gos-villains-${VERSION}-runner.jar
+	WAVES_DELAY=5 WAVES_SIZE=30 WAVES_COUNT=2 java -jar ./villains/target/gos-villains-${VERSION}-runner.jar
 
 start-catapult-vertx:
-	export Y="150" && java -jar ./catapult-vertx/target/gos-catapult-vertx-${VERSION}-runner.jar
+	Y="150" java -jar ./catapult-vertx/target/gos-catapult-vertx-${VERSION}-runner.jar
 
 start-catapult-quarkus:
-	export Y="350" && java -jar ./catapult-quarkus/target/gos-catapult-quarkus-${VERSION}-runner.jar
-
-start-ned:
-	export Y="150" SPEED="70" NAME="ned-stark" USE_BOW="true" && java -jar ./hero/target/gos-hero-${VERSION}-runner.jar
+	Y="350" java -jar ./catapult-quarkus/target/gos-catapult-quarkus-${VERSION}-runner.jar
 
 dev-web:
 	cd web && mvn compile quarkus:dev
@@ -180,11 +177,14 @@ dev-web:
 start-web:
 	java -jar ./web/target/gos-web-${VERSION}-runner.jar
 
+start-ned:
+	QUARKUS_HTTP_PORT="8085" Y="150" SPEED="70" NAME="ned-stark" USE_BOW="true" java -jar ./hero/target/gos-hero-${VERSION}-runner.jar
+
 start-aria:
-	export Y="350" SPEED="70" NAME="aria-stark" USE_BOW="true" && java -jar ./hero/target/gos-hero-${VERSION}-runner.jar
+	QUARKUS_HTTP_PORT="8086" Y="350" SPEED="70" NAME="aria-stark" USE_BOW="true" java -jar ./hero/target/gos-hero-${VERSION}-runner.jar
 
 start-random-hero:
-	unset X Y SPEED ID USE_BOW && java -jar ./hero/target/gos-hero-${VERSION}-runner.jar;
+	QUARKUS_HTTP_PORT="8087" java -jar ./hero/target/gos-hero-${VERSION}-runner.jar;
 
 start-arrow:
 	java -jar ./arrow/target/gos-arrow-${VERSION}-runner.jar

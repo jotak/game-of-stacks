@@ -8,8 +8,8 @@ import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
 import java.util.*
 
-class Boulder(private val displayEmitter: Emitter<JsonArray>, private val killAroundEmitter: Emitter<JsonObject>, initPos: Point, destPos: Point, speed: Double, impactZone: Double)
-    : BaseBoulder("BOULDER-Q-" + UUID.randomUUID().toString(), initPos, destPos, speed, impactZone) {
+class Boulder(id: String, private val displayEmitter: Emitter<JsonArray>, private val killAroundEmitter: Emitter<JsonObject>, initPos: Point, destPos: Point, speed: Double, impactZone: Double)
+    : BaseBoulder(id, initPos, destPos, speed, impactZone) {
 
   override suspend fun killAround(zone: Circle) {
     killAroundEmitter.send(JsonObject.mapFrom(zone))
