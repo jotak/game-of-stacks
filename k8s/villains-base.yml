@@ -19,6 +19,7 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.io/scheme: "http"
         prometheus.io/port: "9090"
+#        sidecar.istio.io/statsInclusionPrefixes: cluster_manager,listener_manager,broker
       labels:
         project: gos
         type: game-object
@@ -43,7 +44,7 @@ spec:
             - name: JAVA_OPTIONS
               value: "-Dvertx.disableDnsResolver=true"
             - name: KAFKA_ADDRESS
-              value: my-cluster-kafka-bootstrap.kafka:9092
+              value: messaging-kafka-bootstrap.kafka:9092
             - name: WAVES_SIZE
               value: "10"
             - name: WAVES_DELAY

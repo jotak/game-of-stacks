@@ -45,7 +45,7 @@ spec:
             - name: JAVA_OPTIONS
               value: "-Dvertx.disableDnsResolver=true"
             - name: KAFKA_ADDRESS
-              value: my-cluster-kafka-bootstrap.kafka:9092
+              value: messaging-kafka-bootstrap.kafka:9092
           securityContext:
             privileged: false
 ---

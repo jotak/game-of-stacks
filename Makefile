@@ -1,6 +1,8 @@
 VERSION := 0.0.1
 STRIMZI_VERSION := 0.16.0
-ISTIO_VERSION := 1.4.5
+# Set either ISTIO_VERSION or ISTIO_PATH ; the former will download istio whereas the latter will reuse existing one
+ISTIO_VERSION ?= 1.5.0
+ISTIO_PATH ?= ""
 # List of all services (for image building / deploying)
 SERVICES ?= web-j11hotspot villains-j11oj9 catapult-vertx-j11hotspot arrow-j11hotspot hero-native hero-j11hotspot
 # Kube's CLI (kubectl or oc)
@@ -10,10 +12,10 @@ OCI_BIN ?= $(shell which podman 2>/dev/null || which docker 2>/dev/null)
 OCI_BIN_SHORT = $(shell if [[ ${OCI_BIN} == *"podman" ]]; then echo "podman"; else echo "docker"; fi)
 # Tag for docker images
 OCI_TAG ?= dev
-# Set MINIKUBE=true if you want to deploy to minikube (using registry addons)
-MINIKUBE ?= true
+# Set LOCAL=true if you want to use locally built images
+LOCAL ?= true
 
-ifeq ($(MINIKUBE),false)
+ifeq ($(LOCAL),false)
 OCI_DOMAIN ?= quay.io
 OCI_DOMAIN_IN_CLUSTER ?= quay.io
 PULL_POLICY ?= "IfNotPresent"
@@ -73,12 +75,21 @@ deploy-kafka:
 	${K8S_BIN} apply -f ./k8s/strimzi-kafka-${STRIMZI_VERSION}.yml -n kafka
 
 deploy-istio:
+ifeq ($(ISTIO_PATH),"")
 	export ISTIO_VERSION=${ISTIO_VERSION} && curl -L https://istio.io/downloadIstio | sh - ; \
-	cp istio-${ISTIO_VERSION}/bin/istioctl . ; \
+	cp istio-${ISTIO_VERSION}/bin/istioctl .
+else
+	cp ${ISTIO_PATH}/bin/istioctl .
+endif
 	./istioctl manifest apply --set profile=demo ; \
+	${K8S_BIN} config set-context $(shell ${K8S_BIN} config current-context) --namespace=default
+ifeq ($(ISTIO_PATH),"")
 	rm -r istio-${ISTIO_VERSION}
+endif
 
 enable-istio:
+	${K8S_BIN} label namespace kafka istio-injection=enabled ; \
+	${K8S_BIN} delete pods -n kafka --all ; \
 	${K8S_BIN} label namespace default istio-injection=enabled ; \
 	${K8S_BIN} delete pods -l project=gos
 
@@ -115,6 +126,15 @@ start-mixed:
 	${K8S_BIN} delete pods -l type=game-object
 	${K8S_BIN} scale deployment hero-native --replicas=2; \
 	${K8S_BIN} scale deployment hero-j11hotspot --replicas=2; \
+	${K8S_BIN} scale deployment arrow-j11hotspot --replicas=1; \
+	${K8S_BIN} scale deployment villains-j11oj9 --replicas=1;
+
+start-low-resources: reset
+	./gentpl.sh villains-j11oj9 -pp ${PULL_POLICY} -d "${OCI_DOMAIN_IN_CLUSTER}" -t ${OCI_TAG} \
+    	| yq w --tag '!!str' - "spec.template.spec.containers[0].env.(name==WAVES_SIZE).value" 4 \
+    	| yq w --tag '!!str' - "spec.template.spec.containers[0].env.(name==WAVES_COUNT).value" 1 \
+		| ${K8S_BIN} apply -f -
+	${K8S_BIN} scale deployment hero-native --replicas=1; \
 	${K8S_BIN} scale deployment arrow-j11hotspot --replicas=1; \
 	${K8S_BIN} scale deployment villains-j11oj9 --replicas=1;
 

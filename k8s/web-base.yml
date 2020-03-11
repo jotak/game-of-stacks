@@ -18,6 +18,7 @@ spec:
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/scheme: "http"
+#        sidecar.istio.io/statsInclusionPrefixes: cluster_manager,listener_manager,broker
       labels:
         project: gos
         type: web
@@ -34,7 +35,7 @@ spec:
           protocol: TCP
         env:
         - name: KAFKA_BOOTSTRAP_SERVERS
-          value: my-cluster-kafka-bootstrap.kafka:9092
+          value: messaging-kafka-bootstrap.kafka:9092
         securityContext:
           privileged: false
 ---
