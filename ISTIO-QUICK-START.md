@@ -15,11 +15,8 @@ ISTIO_PATH=~/istio-1.5.0 make deploy-istio
 # Enable Istio on namespaces 'default' and 'kafka':
 make enable-istio
 
-# We fetch Game of Stacks images from Quay:
-export QUAY=true
-
 # Start:
-make simu-low-resources
+QUAY=true make simu-low-resources
 ```
 
 For non-minikube / remote clusters, the same commands should work as well.
