@@ -4,8 +4,8 @@ metadata:
   name: kafka-service-entry
 spec:
   hosts:
-          #    - my-cluster-kafka-0.my-cluster-kafka-brokers.kafka
-    - my-cluster-kafka-brokers
+    - messaging-kafka-brokers.kafka.svc.cluster.local
+    - messaging-kafka-bootstrap.kafka.svc.cluster.local
   ports:
     - name: tcp-replication
       number: 9091

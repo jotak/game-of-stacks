@@ -1,0 +1,54 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: kafka-protocol
+  namespace: default
+spec:
+  configPatches:
+    - applyTo: NETWORK_FILTER
+      match:
+        context: SIDECAR_OUTBOUND
+        listener:
+          portNumber: 9092
+          filterChain:
+            filter:
+              name: "envoy.tcp_proxy"
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          name: "envoy.filters.network.kafka_broker"
+          typed_config:
+            "@type": type.googleapis.com/envoy.config.filter.network.kafka_broker.v2alpha1.KafkaBroker
+            stat_prefix: broker
+
+#    - applyTo: CLUSTER
+#      match:
+#        context: SIDECAR_OUTBOUND
+#      patch:
+#        operation: ADD
+#        value: # cluster specification
+#          name: "localkafka"
+#          type: STRICT_DNS
+#          connect_timeout: 0.5s
+#          lb_policy: ROUND_ROBIN
+#          hosts:
+#            - socket_address:
+#                protocol: TCP
+#                address: "127.0.0.1"
+#                port_value: 9092
+#          config:
+#            ...
+#    - applyTo: NETWORK_FILTER # http connection manager is a filter in Envoy
+#      match:
+#        # context omitted so that this applies to both sidecars and gateways
+#        listener:
+#          filterChain:
+#            filter:
+#              name: "envoy.http_connection_manager"
+#      patch:
+#        operation: MERGE
+#        value:
+#          name: "envoy.http_connection_manager"
+#          typed_config:
+#            "@type": "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager"
+#            idle_timeout: 30s
