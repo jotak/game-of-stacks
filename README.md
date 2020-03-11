@@ -40,9 +40,9 @@ make start
 ```
 
 
-## Running on Minikube
+## Running on Kubernetes or OpenShift
 
-Assuming minikube is up and running
+Assuming Kube or OS  is up and running
 
 ```bash
 # Deploy Strimzi/Kafka in namespace "kafka"

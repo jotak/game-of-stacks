@@ -106,18 +106,14 @@ ifeq ($(K8S_BIN),oc)
 	${K8S_BIN} apply -f ./k8s/web-route.yml
 endif
 
-reset:
-	${K8S_BIN} scale deployment hero-native --replicas=0; \
-	${K8S_BIN} scale deployment hero-j11hotspot --replicas=0; \
-	${K8S_BIN} scale deployment arrow-j11hotspot --replicas=0; \
-	${K8S_BIN} scale deployment villains-j11oj9 --replicas=0;
+reset: deploy
 
-arrow-scaling-hero-native-vs-hotspot--native: reset
+simu-arrow-scaling-hero-native-vs-hotspot--native: reset
 	${K8S_BIN} scale deployment hero-native --replicas=5; \
 	${K8S_BIN} scale deployment arrow-j11hotspot --replicas=1; \
 	${K8S_BIN} scale deployment villains-j11oj9 --replicas=1;
 
-arrow-scaling-hero-native-vs-hotspot--hotspot: reset
+simu-scaling-hero-native-vs-hotspot--hotspot: reset
 	${K8S_BIN} scale deployment hero-j11hotspot --replicas=5; \
 	${K8S_BIN} scale deployment arrow-j11hotspot --replicas=1; \
 	${K8S_BIN} scale deployment villains-j11oj9 --replicas=1;
@@ -129,7 +125,7 @@ start-mixed:
 	${K8S_BIN} scale deployment arrow-j11hotspot --replicas=1; \
 	${K8S_BIN} scale deployment villains-j11oj9 --replicas=1;
 
-start-low-resources: reset
+simu-low-resources: reset
 	./gentpl.sh villains-j11oj9 -pp ${PULL_POLICY} -d "${OCI_DOMAIN_IN_CLUSTER}" -t ${OCI_TAG} \
     	| yq w --tag '!!str' - "spec.template.spec.containers[0].env.(name==WAVES_SIZE).value" 4 \
     	| yq w --tag '!!str' - "spec.template.spec.containers[0].env.(name==WAVES_COUNT).value" 1 \
