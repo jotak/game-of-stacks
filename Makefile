@@ -12,10 +12,10 @@ OCI_BIN ?= $(shell which podman 2>/dev/null || which docker 2>/dev/null)
 OCI_BIN_SHORT = $(shell if [[ ${OCI_BIN} == *"podman" ]]; then echo "podman"; else echo "docker"; fi)
 # Tag for docker images
 OCI_TAG ?= dev
-# Set LOCAL=true if you want to use locally built images
-LOCAL ?= true
+# Set QUAY=true if you want to use remote (quay.io) images
+QUAY ?= false
 
-ifeq ($(LOCAL),false)
+ifeq ($(QUAY),true)
 OCI_DOMAIN ?= quay.io
 OCI_DOMAIN_IN_CLUSTER ?= quay.io
 PULL_POLICY ?= "IfNotPresent"

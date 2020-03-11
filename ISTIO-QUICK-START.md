@@ -16,7 +16,7 @@ ISTIO_PATH=~/istio-1.5.0 make deploy-istio
 make enable-istio
 
 # Deploy:
-LOCAL=false make deploy
+QUAY=true make deploy
 
 # Start:
 make start-low-resources
