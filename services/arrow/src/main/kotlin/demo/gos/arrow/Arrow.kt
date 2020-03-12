@@ -2,11 +2,11 @@ package demo.gos.arrow
 
 import demo.gos.common.*
 import demo.gos.common.maths.Segment
-import io.smallrye.reactive.messaging.annotations.Channel
-import io.smallrye.reactive.messaging.annotations.Emitter
 import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
 import org.eclipse.microprofile.config.inject.ConfigProperty
+import org.eclipse.microprofile.reactive.messaging.Channel
+import org.eclipse.microprofile.reactive.messaging.Emitter
 import java.security.SecureRandom
 import java.util.*
 import java.util.logging.Logger

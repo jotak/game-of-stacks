@@ -12,9 +12,3 @@ data class DisplayData @JsonCreator constructor(
   @JsonProperty("label") val label: String? = null,
   @JsonProperty("tween") val tween: Tween? = null
 )
-
-data class Tween @JsonCreator constructor(
-  @JsonProperty("time") val time: Double,
-  @JsonProperty("x") val x: Double,
-  @JsonProperty("y") val y: Double
-)

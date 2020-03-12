@@ -4,7 +4,7 @@ STRIMZI_VERSION := 0.16.0
 ISTIO_VERSION ?= 1.5.0
 ISTIO_PATH ?= ""
 # List of all services (for image building / deploying)
-SERVICES ?= web-j11hotspot villains-j11oj9 catapult-vertx-j11hotspot arrow-j11hotspot hero-native hero-j11hotspot
+SERVICES ?= web-j11hotspot villains-j11oj9 catapult-vertx-j11hotspot arrow-native arrow-j11hotspot hero-native hero-j11hotspot hero-j8hotspot
 # Kube's CLI (kubectl or oc)
 K8S_BIN ?= $(shell which kubectl 2>/dev/null || which oc 2>/dev/null)
 # OCI CLI (docker or podman)
@@ -44,9 +44,19 @@ build: install
 install:
 	mvn install -DskipTests
 
-build-native:
+build-native-arrow:
+	mvn package -f services/arrow/pom.xml -Pnative -Dquarkus.native.container-build=true -DskipTests -Dnative-image.xmx=5g -Dquarkus.native.container-runtime=${OCI_BIN_SHORT};
+
+build-native-hero:
 	mvn package -f services/hero/pom.xml -Pnative -Dquarkus.native.container-build=true -DskipTests -Dnative-image.xmx=5g -Dquarkus.native.container-runtime=${OCI_BIN_SHORT};
-#	mvn package -f services/arrow/pom.xml -Pnative -Dquarkus.native.container-build=true -DskipTests -Dnative-image.xmx=5g -Dquarkus.native.container-runtime=${OCI_BIN_SHORT};
+
+build-native-web:
+	mvn package -f services/web/pom.xml -Pnative -Dquarkus.native.container-build=true -DskipTests -Dnative-image.xmx=5g -Dquarkus.native.container-runtime=${OCI_BIN_SHORT};
+
+build-native-catapult:
+	mvn package -f services/catapult-quarkus/pom.xml -Pnative -Dquarkus.native.container-build=true -DskipTests -Dnative-image.xmx=5g -Dquarkus.native.container-runtime=${OCI_BIN_SHORT};
+
+build-native: build-native-arrow build-native-hero
 
 test:
 	mvn test
@@ -173,21 +183,24 @@ start:
 
 preset-simu-hero:
 	./gentpl.sh villains-j11oj9 -pp ${PULL_POLICY} -d "${OCI_DOMAIN_IN_CLUSTER}" -t ${OCI_TAG} \
-    		| yq w --tag '!!str' - "spec.template.spec.containers[0].env.(name==WAVES_SIZE).value" 27 \
-    		| yq w --tag '!!str' - "spec.template.spec.containers[0].env.(name==WAVES_DELAY).value" 5 \
+    		| yq w --tag '!!str' - "spec.template.spec.containers[0].env.(name==WAVES_SIZE).value" 10 \
+    		| yq w --tag '!!str' - "spec.template.spec.containers[0].env.(name==WAVES_DELAY).value" 6 \
     		| yq w --tag '!!str' - "spec.template.spec.containers[0].env.(name==WAVES_COUNT).value" 3 \
     		| ${K8S_BIN} apply -f -
 	${K8S_BIN} scale deployment villains-j11oj9 --replicas=1;
 	${K8S_BIN} scale deployment arrow-j11hotspot --replicas=1;
 
 simu-hero-native: reset preset-simu-hero
+	./gentpl.sh hero-native -pp ${PULL_POLICY} -d "${OCI_DOMAIN_IN_CLUSTER}" -t ${OCI_TAG} \
+			| yq w --tag '!!str' - "spec.template.spec.containers[0].env.(name==BURST).value" 5 \
+			| ${K8S_BIN} apply -f -
 	${K8S_BIN} scale deployment hero-native --replicas=10;
 
 simu-hero-j11hotspot: reset preset-simu-hero
 	${K8S_BIN} scale deployment hero-j11hotspot --replicas=10;
 
-simu-hero-j9hotspot: reset preset-simu-hero
-	${K8S_BIN} scale deployment hero-j9hotspot --replicas=10;
+simu-hero-j8hotspot: reset preset-simu-hero
+	${K8S_BIN} scale deployment hero-j8hotspot --replicas=10;
 
 simu-mixed:
 	${K8S_BIN} delete pods -l type=game-object

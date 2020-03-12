@@ -6,13 +6,13 @@ import demo.gos.common.maths.Segment
 import io.quarkus.runtime.ShutdownEvent
 import io.quarkus.runtime.StartupEvent
 import io.reactivex.Flowable
-import io.smallrye.reactive.messaging.annotations.Channel
-import io.smallrye.reactive.messaging.annotations.Emitter
-import io.smallrye.reactive.messaging.annotations.OnOverflow
 import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
 import org.eclipse.microprofile.config.inject.ConfigProperty
+import org.eclipse.microprofile.reactive.messaging.Channel
+import org.eclipse.microprofile.reactive.messaging.Emitter
 import org.eclipse.microprofile.reactive.messaging.Incoming
+import org.eclipse.microprofile.reactive.messaging.OnOverflow
 import java.security.SecureRandom
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
@@ -57,11 +57,17 @@ class Hero {
     @ConfigProperty(name = "accuracy", defaultValue = "0.5")
     lateinit var accuracy: Provider<Double>
 
-    @ConfigProperty(name = "burst", defaultValue = "1")
-    lateinit var burst: Provider<Long>
+    @ConfigProperty(name = "range", defaultValue = "400.0")
+    lateinit var range: Provider<Double>
 
-    @ConfigProperty(name = "range", defaultValue = "400")
-    var range: Double = 400.0
+    @ConfigProperty(name = "bow-range", defaultValue = "1024.0")
+    lateinit var bowRange: Provider<Double>
+
+    @ConfigProperty(name = "bow-accuracy", defaultValue = "0.2")
+    lateinit var bowAccuracy: Provider<Double>
+
+    @ConfigProperty(name = "burst", defaultValue = "1")
+    lateinit var bowBurst: Provider<Long>
 
     @ConfigProperty(name = "speed", defaultValue = "70.0")
     lateinit var speed: Provider<Double>
@@ -143,7 +149,7 @@ class Hero {
                 val b = bow.get()
                 val t = target.get()
                 if (b != null && t != null) {
-                    b.fire(position.get(), t.noise, burst.get(), accuracy.get(), range)
+                    b.fire(position.get(), t.noise, bowBurst.get(), bowAccuracy.get(), bowRange.get())
                 }
             } else {
                 walkRandom()
@@ -193,7 +199,7 @@ class Hero {
         if (t != null) {
             val seg = Segment(position.get(), t.noise.toPoint())
             val dist = seg.size()
-            if (dist > range) {
+            if (dist > range.get()) {
                 // Walk toward target
                 position.set(Players.walk(
                         rnd = rnd,

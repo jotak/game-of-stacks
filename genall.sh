@@ -19,3 +19,4 @@ OPTS="$*"
 ./gentpl.sh arrow-j11hotspot -r quarkus $OPTS
 ./gentpl.sh hero-native -r quarkus $OPTS
 ./gentpl.sh hero-j11hotspot -r quarkus $OPTS
+./gentpl.sh hero-j8hotspot -r quarkus $OPTS

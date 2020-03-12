@@ -18,6 +18,15 @@
     "allPublicFields" : true
   },
   {
+    "name" : "demo.gos.common.Tween",
+    "allDeclaredConstructors" : true,
+    "allPublicConstructors" : true,
+    "allDeclaredMethods" : true,
+    "allPublicMethods" : true,
+    "allDeclaredFields" : true,
+    "allPublicFields" : true
+  },
+  {
     "name" : "demo.gos.common.Circle",
     "allDeclaredConstructors" : true,
     "allPublicConstructors" : true,

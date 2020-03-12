@@ -40,12 +40,12 @@ spec:
           value: http://arrow:8080
         - name: USE_BOW
           value: "true"
-        - name: burst
-          value: "1"
-        - name: speed
+        - name: SPEED
           value: "20"
-        - name: accuracy
+        - name: BOW_ACCURACY
           value: "0.3"
+        - name: BOW_BURST
+          value: "1"
         securityContext:
           privileged: false
 ---
