@@ -34,6 +34,8 @@ endif
 
 DOCKER_ENV = ""
 
+################# MAVEN #################
+
 clean:
 	mvn clean
 
@@ -48,6 +50,8 @@ build-native:
 
 test:
 	mvn test
+
+################# DOCKER #################
 
 docker-eval:
 	for svc in ${SERVICES} ; do \
@@ -70,6 +74,8 @@ podman:
 		${OCI_BIN_SHORT} push --tls-verify=false ${OCI_DOMAIN}/gos/gos-$$svc:${OCI_TAG} ; \
 	done
 
+################# K8S/OS #################
+
 deploy-kafka:
 	${K8S_BIN} create namespace kafka
 	curl -L https://github.com/strimzi/strimzi-kafka-operator/releases/download/${STRIMZI_VERSION}/strimzi-cluster-operator-${STRIMZI_VERSION}.yaml | sed 's/namespace: .*/namespace: kafka/'   | ${K8S_BIN} apply -f - -n kafka
@@ -88,19 +94,6 @@ ifeq ($(ISTIO_PATH),"")
 	rm -r istio-${ISTIO_VERSION}
 endif
 
-enable-istio:
-	${K8S_BIN} label namespace kafka istio-injection=enabled ; \
-	${K8S_BIN} delete pods -n kafka --all ; \
-	${K8S_BIN} label namespace default istio-injection=enabled ; \
-	${K8S_BIN} delete pods -l project=gos
-
-disable-istio:
-	${K8S_BIN} label namespace default istio-injection- ; \
-	${K8S_BIN} delete pods -l project=gos
-
-expose-kiali:
-	./istioctl dashboard kiali
-
 deploy: .ensure-yq
 	./genall.sh -pp ${PULL_POLICY} -d "${OCI_DOMAIN_IN_CLUSTER}" -t ${OCI_TAG} | ${K8S_BIN} apply -f - ;
 ifeq ($(K8S_BIN),oc)
@@ -109,43 +102,6 @@ endif
 
 reset: deploy
 
-simu-arrow-scaling-hero-native-vs-hotspot--native: reset
-	${K8S_BIN} scale deployment hero-native --replicas=5; \
-	${K8S_BIN} scale deployment arrow-j11hotspot --replicas=1; \
-	${K8S_BIN} scale deployment villains-j11oj9 --replicas=1;
-
-simu-scaling-hero-native-vs-hotspot--hotspot: reset
-	${K8S_BIN} scale deployment hero-j11hotspot --replicas=5; \
-	${K8S_BIN} scale deployment arrow-j11hotspot --replicas=1; \
-	${K8S_BIN} scale deployment villains-j11oj9 --replicas=1;
-
-simu-mixed:
-	${K8S_BIN} delete pods -l type=game-object
-	${K8S_BIN} scale deployment hero-native --replicas=2; \
-	${K8S_BIN} scale deployment hero-j11hotspot --replicas=2; \
-	${K8S_BIN} scale deployment arrow-j11hotspot --replicas=1; \
-	${K8S_BIN} scale deployment villains-j11oj9 --replicas=1;
-
-simu-low-resources: reset
-	./gentpl.sh villains-j11oj9 -pp ${PULL_POLICY} -d "${OCI_DOMAIN_IN_CLUSTER}" -t ${OCI_TAG} \
-    	| yq w --tag '!!str' - "spec.template.spec.containers[0].env.(name==WAVES_SIZE).value" 4 \
-    	| yq w --tag '!!str' - "spec.template.spec.containers[0].env.(name==WAVES_COUNT).value" 1 \
-		| ${K8S_BIN} apply -f -
-	${K8S_BIN} scale deployment hero-native --replicas=1; \
-	${K8S_BIN} scale deployment arrow-j11hotspot --replicas=1; \
-	${K8S_BIN} scale deployment villains-j11oj9 --replicas=1;
-
-more-villains:
-	./gentpl.sh villains-j11oj9 -pp ${PULL_POLICY} -d "${OCI_DOMAIN_IN_CLUSTER}" -t ${OCI_TAG} \
-    	| yq w --tag '!!str' - "spec.template.spec.containers[0].env.(name==WAVES_SIZE).value" 10 \
-    	| yq w --tag '!!str' - "spec.template.spec.containers[0].env.(name==WAVES_COUNT).value" 4 \
-		| ${K8S_BIN} apply -f -
-
-much-more-villains:
-	./gentpl.sh villains-j11oj9 -pp ${PULL_POLICY} -d "${OCI_DOMAIN_IN_CLUSTER}" -t ${OCI_TAG} \
-    	| yq w --tag '!!str' - "spec.template.spec.containers[0].env.(name==WAVES_SIZE).value" 30 \
-    	| yq w --tag '!!str' - "spec.template.spec.containers[0].env.(name==WAVES_COUNT).value" 4 \
-		| ${K8S_BIN} apply -f -
 
 scale-service:
 	${K8S_BIN} scale deployment $$svc --replicas=$(count)
@@ -162,6 +118,23 @@ undeploy:
 
 restart-pods-go:
 	${K8S_BIN} delete pods -l project=gos -l type=game-object
+
+################# KIALI #################
+
+enable-istio:
+	${K8S_BIN} label namespace kafka istio-injection=enabled ; \
+	${K8S_BIN} delete pods -n kafka --all ; \
+	${K8S_BIN} label namespace default istio-injection=enabled ; \
+	${K8S_BIN} delete pods -l project=gos
+
+disable-istio:
+	${K8S_BIN} label namespace default istio-injection- ; \
+	${K8S_BIN} delete pods -l project=gos
+
+expose-kiali:
+	./istioctl dashboard kiali
+
+################# DEV STARTERS #################
 
 start-villains:
 	WAVES_DELAY=5 WAVES_SIZE=30 WAVES_COUNT=2 java -jar ./services/villains/target/gos-villains-${VERSION}-runner.jar
@@ -195,3 +168,51 @@ start-kafka:
 
 start:
 	make -j7 start-arrow start-villains start-catapult-vertx start-catapult-quarkus start-aria start-ned start-random-hero
+
+################# SIMULATIONS #################
+
+preset-simu-hero:
+	./gentpl.sh villains-j11oj9 -pp ${PULL_POLICY} -d "${OCI_DOMAIN_IN_CLUSTER}" -t ${OCI_TAG} \
+    		| yq w --tag '!!str' - "spec.template.spec.containers[0].env.(name==WAVES_SIZE).value" 27 \
+    		| yq w --tag '!!str' - "spec.template.spec.containers[0].env.(name==WAVES_DELAY).value" 5 \
+    		| yq w --tag '!!str' - "spec.template.spec.containers[0].env.(name==WAVES_COUNT).value" 3 \
+    		| ${K8S_BIN} apply -f -
+	${K8S_BIN} scale deployment villains-j11oj9 --replicas=1;
+	${K8S_BIN} scale deployment arrow-j11hotspot --replicas=1;
+
+simu-hero-native: reset preset-simu-hero
+	${K8S_BIN} scale deployment hero-native --replicas=10;
+
+simu-hero-j11hotspot: reset preset-simu-hero
+	${K8S_BIN} scale deployment hero-j11hotspot --replicas=10;
+
+simu-hero-j9hotspot: reset preset-simu-hero
+	${K8S_BIN} scale deployment hero-j9hotspot --replicas=10;
+
+simu-mixed:
+	${K8S_BIN} delete pods -l type=game-object
+	${K8S_BIN} scale deployment hero-native --replicas=2; \
+	${K8S_BIN} scale deployment hero-j11hotspot --replicas=2; \
+	${K8S_BIN} scale deployment arrow-j11hotspot --replicas=1; \
+	${K8S_BIN} scale deployment villains-j11oj9 --replicas=1;
+
+simu-low-resources: reset
+	./gentpl.sh villains-j11oj9 -pp ${PULL_POLICY} -d "${OCI_DOMAIN_IN_CLUSTER}" -t ${OCI_TAG} \
+    	| yq w --tag '!!str' - "spec.template.spec.containers[0].env.(name==WAVES_SIZE).value" 4 \
+    	| yq w --tag '!!str' - "spec.template.spec.containers[0].env.(name==WAVES_COUNT).value" 1 \
+		| ${K8S_BIN} apply -f -
+	${K8S_BIN} scale deployment hero-native --replicas=1; \
+	${K8S_BIN} scale deployment arrow-j11hotspot --replicas=1; \
+	${K8S_BIN} scale deployment villains-j11oj9 --replicas=1;
+
+more-villains:
+	./gentpl.sh villains-j11oj9 -pp ${PULL_POLICY} -d "${OCI_DOMAIN_IN_CLUSTER}" -t ${OCI_TAG} \
+    	| yq w --tag '!!str' - "spec.template.spec.containers[0].env.(name==WAVES_SIZE).value" 10 \
+    	| yq w --tag '!!str' - "spec.template.spec.containers[0].env.(name==WAVES_COUNT).value" 4 \
+		| ${K8S_BIN} apply -f -
+
+much-more-villains:
+	./gentpl.sh villains-j11oj9 -pp ${PULL_POLICY} -d "${OCI_DOMAIN_IN_CLUSTER}" -t ${OCI_TAG} \
+    	| yq w --tag '!!str' - "spec.template.spec.containers[0].env.(name==WAVES_SIZE).value" 30 \
+    	| yq w --tag '!!str' - "spec.template.spec.containers[0].env.(name==WAVES_COUNT).value" 4 \
+		| ${K8S_BIN} apply -f -
