@@ -99,7 +99,7 @@ class Villain(private val kafkaProducer: KafkaProducer<String, JsonObject>) {
           isDead = true
         }
       } else {
-        val positions = Players.walkRandom(RND, pos, randomDest, SPEED, ACCURACY, delta)
+        val positions = Players.walkRandom(RND, pos, randomDest, SPEED, ACCURACY, delta, Areas.spawnHeroesArea)
         pos = positions.first
         randomDest = positions.second
       }

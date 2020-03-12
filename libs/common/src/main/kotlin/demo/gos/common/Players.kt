@@ -32,19 +32,22 @@ object Players {
     return segToDest.derivate().normalize().rotate(angle)
   }
 
-  fun walkRandom(rnd: SecureRandom, pos: Point, dest: Point?, speed: Double, accuracy: Double, delta: Double): Pair<Point, Point> {
-    val newDest = pickRandomDest(rnd, pos, dest)
+  fun walkRandom(rnd: SecureRandom, pos: Point, dest: Point?, speed: Double, accuracy: Double, delta: Double, area: Area? = null): Pair<Point, Point> {
+    val newDest = pickRandomDest(rnd, pos, dest, area)
     val newPos = walk(rnd, pos, newDest, speed, accuracy, delta)
     return Pair(newPos, newDest)
   }
 
-  private fun pickRandomDest(rnd: SecureRandom, pos: Point, dest: Point?): Point {
+  private fun pickRandomDest(rnd: SecureRandom, pos: Point, dest: Point?, area: Area?): Point {
     return if (dest != null && pos.diff(dest).size() > 20) {
       // Not arrived yet => continue to walk to previously picked random destination
-      dest
+      return dest
     } else {
       // Else, pick a new random destination close to current position
-      Point(rnd.nextDouble() * 100, rnd.nextDouble() * 100).diff(Point(50.0, 50.0)).add(pos)
+      if(area != null) {
+        return Areas.spawnHeroesArea.spawn(rnd)
+      }
+      return Point(rnd.nextDouble() * 100, rnd.nextDouble() * 100).diff(Point(50.0, 50.0)).add(pos)
     }
   }
 }

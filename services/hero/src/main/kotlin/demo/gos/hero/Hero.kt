@@ -11,7 +11,6 @@ import io.smallrye.reactive.messaging.annotations.Emitter
 import io.smallrye.reactive.messaging.annotations.OnOverflow
 import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
-import org.apache.commons.lang3.RandomStringUtils
 import org.eclipse.microprofile.config.inject.ConfigProperty
 import org.eclipse.microprofile.reactive.messaging.Incoming
 import java.security.SecureRandom
@@ -79,7 +78,6 @@ class Hero {
 
     val initialized = AtomicBoolean(false)
     val position = AtomicReference<Point>()
-    val paused = AtomicBoolean(false)
     val ended = AtomicBoolean(false)
 
     @Inject
@@ -104,7 +102,7 @@ class Hero {
     lateinit var villainMakingNoiseFlowable: Flowable<JsonObject>
 
     fun onStart(@Observes e: StartupEvent) {
-        reset()
+        init()
         LOG.info("$id has joined the game (${position.get().x()}, ${position.get().y()}) ${if(useBow.get()) "with a bow" else ""}")
         initialized.set(true)
         timer.scheduleAtFixedRate(DELTA_MS, DELTA_MS) {
@@ -131,7 +129,7 @@ class Hero {
     }
 
     fun scheduled() {
-        if (!paused.get() && !dead.get()) {
+        if (!dead.get()) {
             makeNoise()
             val catapult = targetCatapult.get()?.noise
             if (catapult != null) {
@@ -243,20 +241,6 @@ class Hero {
         }
     }
 
-    @Incoming("controls")
-    fun controls(o: JsonObject) {
-        if (!initialized.get()) {
-            return
-        }
-        val type = o.getString("type")!!
-        LOG.info("$id received $type")
-        when (type) {
-            "play" -> paused.set(false)
-            "pause" -> paused.set(true)
-            "reset" -> reset()
-        }
-    }
-
     @Incoming("gameover")
     fun gameover(o: JsonObject) {
         if (!initialized.get()) {
@@ -265,10 +249,9 @@ class Hero {
         ended.set(true)
     }
 
-    private fun reset() {
+    private fun init() {
         name.set(configName.orElse(HEROES[rnd.nextInt(HEROES.size)]))
         id.set("HERO-QUARKUS-${name.get()}-${runtime.orElse("u")}-${Players.randomName(rnd)}")
-        paused.set(false)
         dead.set(false)
         ended.set(false)
         position.set(GameObjects.startingPoint(rnd, Areas.spawnHeroesArea, null, Y.orElse(null)))
@@ -332,7 +315,7 @@ class Hero {
     }
 
     private fun listenToVillains(noise: Noise) {
-        if (!initialized.get() || paused.get()) {
+        if (!initialized.get()) {
             return
         }
         val perceived = PerceivedNoise.create(noise, position.get())

@@ -86,7 +86,6 @@ make much-more-villains start-mixed
 
 Next steps:
 - Reintroduce catapult
-- Deploy in cloud
 - Differentiate sprites with text (e.g. graal/hotspot)
 
 ## Istio
