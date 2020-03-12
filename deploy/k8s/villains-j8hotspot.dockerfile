@@ -9,7 +9,7 @@ EXPOSE 8081 9090
 # COPY villains/target/classes /deployment/classes
 
 # Temp: fat jar
-COPY villains/target/gos-villains-0.0.1-runner.jar /deployment/
+COPY services/villains/target/gos-villains-0.0.1-runner.jar /deployment/
 
 ENV JAVA_APP_DIR=/deployment
 ENV JAVA_LIB_DIR=/deployment

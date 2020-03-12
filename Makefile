@@ -43,8 +43,8 @@ install:
 	mvn install -DskipTests
 
 build-native:
-	mvn package -f hero/pom.xml -Pnative -Dquarkus.native.container-build=true -DskipTests -Dnative-image.xmx=5g -Dquarkus.native.container-runtime=${OCI_BIN_SHORT};
-#	mvn package -f arrow/pom.xml -Pnative -Dquarkus.native.container-build=true -DskipTests -Dnative-image.xmx=5g -Dquarkus.native.container-runtime=${OCI_BIN_SHORT};
+	mvn package -f services/hero/pom.xml -Pnative -Dquarkus.native.container-build=true -DskipTests -Dnative-image.xmx=5g -Dquarkus.native.container-runtime=${OCI_BIN_SHORT};
+#	mvn package -f services/arrow/pom.xml -Pnative -Dquarkus.native.container-build=true -DskipTests -Dnative-image.xmx=5g -Dquarkus.native.container-runtime=${OCI_BIN_SHORT};
 
 test:
 	mvn test
@@ -52,19 +52,20 @@ test:
 docker-eval:
 	for svc in ${SERVICES} ; do \
 		eval $$(minikube docker-env) ; \
-		docker build -t gos/gos-$$svc:${OCI_TAG} -f ./k8s/$$svc.dockerfile ./ ; \
+		docker build -t gos/gos-$$svc:${OCI_TAG} -f ./deploy/k8s/$$svc.dockerfile ./ ; \
 	done
 
 docker:
 	for svc in ${SERVICES} ; do \
-		${OCI_BIN_SHORT} build -t ${OCI_DOMAIN}/gos/gos-$$svc:${OCI_TAG} -f ./k8s/$$svc.dockerfile ./ ; \
+		echo "Building $$svc..." ; \
+		${OCI_BIN_SHORT} build -t ${OCI_DOMAIN}/gos/gos-$$svc:${OCI_TAG} -f ./deploy/k8s/$$svc.dockerfile ./ ; \
 		${OCI_BIN_SHORT} tag ${OCI_DOMAIN}/gos/gos-$$svc:${OCI_TAG} localhost:5000/gos/gos-$$svc:${OCI_TAG} ; \
 		${OCI_BIN_SHORT} push ${OCI_DOMAIN}/gos/gos-$$svc:${OCI_TAG} ; \
 	done
 
 podman:
 	for svc in ${SERVICES} ; do \
-		${OCI_BIN_SHORT} build -t ${OCI_DOMAIN}/gos/gos-$$svc:${OCI_TAG} -f ./k8s/$$svc.dockerfile ./ ; \
+		${OCI_BIN_SHORT} build -t ${OCI_DOMAIN}/gos/gos-$$svc:${OCI_TAG} -f ./deploy/k8s/$$svc.dockerfile ./ ; \
 		${OCI_BIN_SHORT} tag ${OCI_DOMAIN}/gos/gos-$$svc:${OCI_TAG} localhost:5000/gos/gos-$$svc:${OCI_TAG} ; \
 		${OCI_BIN_SHORT} push --tls-verify=false ${OCI_DOMAIN}/gos/gos-$$svc:${OCI_TAG} ; \
 	done
@@ -72,7 +73,7 @@ podman:
 deploy-kafka:
 	${K8S_BIN} create namespace kafka
 	curl -L https://github.com/strimzi/strimzi-kafka-operator/releases/download/${STRIMZI_VERSION}/strimzi-cluster-operator-${STRIMZI_VERSION}.yaml | sed 's/namespace: .*/namespace: kafka/'   | ${K8S_BIN} apply -f - -n kafka
-	${K8S_BIN} apply -f ./k8s/strimzi-kafka-${STRIMZI_VERSION}.yml -n kafka
+	${K8S_BIN} apply -f ./deploy/k8s/strimzi-kafka-${STRIMZI_VERSION}.yml -n kafka
 
 deploy-istio:
 ifeq ($(ISTIO_PATH),"")
@@ -103,7 +104,7 @@ expose-kiali:
 deploy: .ensure-yq
 	./genall.sh -pp ${PULL_POLICY} -d "${OCI_DOMAIN_IN_CLUSTER}" -t ${OCI_TAG} | ${K8S_BIN} apply -f - ;
 ifeq ($(K8S_BIN),oc)
-	${K8S_BIN} apply -f ./k8s/web-route.yml
+	${K8S_BIN} apply -f ./deploy/k8s/web-route.yml
 endif
 
 reset: deploy
@@ -163,34 +164,34 @@ restart-pods-go:
 	${K8S_BIN} delete pods -l project=gos -l type=game-object
 
 start-villains:
-	WAVES_DELAY=5 WAVES_SIZE=30 WAVES_COUNT=2 java -jar ./villains/target/gos-villains-${VERSION}-runner.jar
+	WAVES_DELAY=5 WAVES_SIZE=30 WAVES_COUNT=2 java -jar ./services/villains/target/gos-villains-${VERSION}-runner.jar
 
 start-catapult-vertx:
-	Y="150" java -jar ./catapult-vertx/target/gos-catapult-vertx-${VERSION}-runner.jar
+	Y="150" java -jar ./services/catapult-vertx/target/gos-catapult-vertx-${VERSION}-runner.jar
 
 start-catapult-quarkus:
-	Y="350" java -jar ./catapult-quarkus/target/gos-catapult-quarkus-${VERSION}-runner.jar
+	Y="350" java -jar ./services/catapult-quarkus/target/gos-catapult-quarkus-${VERSION}-runner.jar
 
 dev-web:
 	cd web && mvn compile quarkus:dev
 
 start-web:
-	java -jar ./web/target/gos-web-${VERSION}-runner.jar
+	java -jar ./services/web/target/gos-web-${VERSION}-runner.jar
 
 start-ned:
-	QUARKUS_HTTP_PORT="8085" Y="150" SPEED="70" NAME="ned-stark" USE_BOW="true" java -jar ./hero/target/gos-hero-${VERSION}-runner.jar
+	QUARKUS_HTTP_PORT="8085" Y="150" SPEED="70" NAME="ned-stark" USE_BOW="true" java -jar ./services/hero/target/gos-hero-${VERSION}-runner.jar
 
 start-aria:
-	QUARKUS_HTTP_PORT="8086" Y="350" SPEED="70" NAME="aria-stark" USE_BOW="true" java -jar ./hero/target/gos-hero-${VERSION}-runner.jar
+	QUARKUS_HTTP_PORT="8086" Y="350" SPEED="70" NAME="aria-stark" USE_BOW="true" java -jar ./services/hero/target/gos-hero-${VERSION}-runner.jar
 
 start-random-hero:
-	QUARKUS_HTTP_PORT="8087" java -jar ./hero/target/gos-hero-${VERSION}-runner.jar;
+	QUARKUS_HTTP_PORT="8087" java -jar ./services/hero/target/gos-hero-${VERSION}-runner.jar;
 
 start-arrow:
-	java -jar ./arrow/target/gos-arrow-${VERSION}-runner.jar
+	java -jar ./services/arrow/target/gos-arrow-${VERSION}-runner.jar
 
 start-kafka:
-	cd kafka; docker-compose up
+	cd deploy/kafka && docker-compose up
 
 start:
 	make -j7 start-arrow start-villains start-catapult-vertx start-catapult-quarkus start-aria start-ned start-random-hero

@@ -14,10 +14,10 @@
 # docker run -i --rm -p 8080:8080 quarkus/gos-gm-jvm
 #
 ###
-FROM fabric8/java-alpine-openjdk8-jre
-EXPOSE 8080
+FROM fabric8/java-alpine-openjdk11-jre
+EXPOSE 8081
 ENV JAVA_OPTIONS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
 ENV AB_ENABLED=jmx_exporter
-COPY arrow/target/lib/* /deployments/lib/
-COPY arrow/target/*-runner.jar /deployments/app.jar
+COPY services/web/target/lib/* /deployments/lib/
+COPY services/web/target/*-runner.jar /deployments/app.jar
 ENTRYPOINT [ "/deployments/run-java.sh" ]

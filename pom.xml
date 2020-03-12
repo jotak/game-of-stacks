@@ -10,14 +10,14 @@
   <version>0.0.1</version>
 
   <modules>
-    <module>common</module>
-    <module>web</module>
-    <module>catapult-common</module>
-    <module>catapult-vertx</module>
-    <module>catapult-quarkus</module>
-    <module>hero</module>
-    <module>arrow</module>
-    <module>villains</module>
+    <module>libs/common</module>
+    <module>libs/catapult-common</module>
+    <module>services/web</module>
+    <module>services/catapult-vertx</module>
+    <module>services/catapult-quarkus</module>
+    <module>services/hero</module>
+    <module>services/arrow</module>
+    <module>services/villains</module>
   </modules>
 
 </project>

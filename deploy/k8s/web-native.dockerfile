@@ -17,7 +17,7 @@
 FROM registry.fedoraproject.org/fedora-minimal
 EXPOSE 8081
 WORKDIR /work/
-COPY web/target/*-runner /work/application
+COPY services/web/target/*-runner /work/application
 RUN chmod 775 /work
 EXPOSE 8080
 CMD ["./application", "-Dquarkus.http.host=0.0.0.0"]

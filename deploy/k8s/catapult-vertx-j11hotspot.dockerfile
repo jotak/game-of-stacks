@@ -9,7 +9,7 @@ EXPOSE 8081 9090
 # COPY catapult-vertx/target/classes /deployment/classes
 
 # Temp: fat jar
-COPY catapult-vertx/target/gos-catapult-vertx-0.0.1-runner.jar /deployment/
+COPY services/catapult-vertx/target/gos-catapult-vertx-0.0.1-runner.jar /deployment/
 
 RUN chgrp -R 0 /deployment && chmod -R g+rwX /deployment
 

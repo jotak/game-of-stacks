@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>demo.gos</groupId>
-  <artifactId>gos-villains</artifactId>
+  <artifactId>gos-catapult-vertx</artifactId>
   <version>0.0.1</version>
 
   <properties>
@@ -20,8 +20,8 @@
 
     <vertx.version>3.8.4</vertx.version>
 
-    <main.launcher>demo.gos.villains.Launcher</main.launcher>
-    <main.verticle>demo.gos.villains.VillainsVerticle</main.verticle>
+    <main.launcher>demo.gos.catapult.Launcher</main.launcher>
+    <main.verticle>demo.gos.catapult.CatapultVerticle</main.verticle>
   </properties>
 
   <dependencyManagement>
@@ -38,12 +38,21 @@
 
   <dependencies>
     <dependency>
+      <groupId>demo.gos</groupId>
+      <artifactId>gos-catapult-common</artifactId>
+      <version>0.0.1</version>
+    </dependency>
+    <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-web-client</artifactId>
     </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-web</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-sync</artifactId>
     </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
@@ -74,7 +83,7 @@
   </dependencies>
 
   <build>
-      <sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
+      <sourceDirectory>src/main/kotlin</sourceDirectory>
     <plugins>
       <plugin>
         <groupId>org.jetbrains.kotlin</groupId>
@@ -123,7 +132,7 @@
               </transformers>
               <artifactSet>
               </artifactSet>
-              <outputFile>${project.build.directory}/${project.artifactId}-${project.version}-runner.jar
+              <outputFile>target/gos-catapult-vertx-0.0.1-runner.jar
               </outputFile>
             </configuration>
           </execution>

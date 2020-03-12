@@ -42,7 +42,7 @@ echo "# BASE_NAME=$BASE_NAME, VARIANT=$VARIANT, RUNTIME=$RUNTIME, PULL_POLICY=$P
 FULL_NAME="$BASE_NAME-$VARIANT"
 IMAGE="${DOMAIN}gos/gos-$FULL_NAME:$TAG"
 
-cat k8s/$BASE_NAME-base.yml \
+cat ./deploy/k8s/$BASE_NAME-base.yml \
     | yq w - metadata.labels.version $VARIANT \
     | yq w - metadata.name $FULL_NAME \
     | yq w - spec.selector.matchLabels.version $VARIANT \
