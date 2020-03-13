@@ -66,7 +66,7 @@ class Hero {
     @ConfigProperty(name = "bow-accuracy", defaultValue = "0.2")
     lateinit var bowAccuracy: Provider<Double>
 
-    @ConfigProperty(name = "burst", defaultValue = "1")
+    @ConfigProperty(name = "bow-burst", defaultValue = "1")
     lateinit var bowBurst: Provider<Long>
 
     @ConfigProperty(name = "speed", defaultValue = "70.0")
