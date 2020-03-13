@@ -14,6 +14,8 @@ OCI_BIN_SHORT = $(shell if [[ ${OCI_BIN} == *"podman" ]]; then echo "podman"; el
 OCI_TAG ?= dev
 # Set QUAY=true if you want to use remote (quay.io) images
 QUAY ?= false
+NAMESPACE ?= default
+K8S_BIN := $(K8S_BIN) -n $(NAMESPACE)
 
 ifeq ($(QUAY),true)
 OCI_DOMAIN ?= quay.io

@@ -35,4 +35,4 @@ ui/src/main/resources/webroot/package-lock.json
 *.iml
 *.iws
 
-deploy/istioctl
+istioctl
