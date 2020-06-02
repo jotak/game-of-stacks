@@ -14,7 +14,7 @@
     <module>libs/catapult-common</module>
     <module>services/web</module>
     <module>services/catapult-vertx</module>
-    <module>services/catapult-quarkus</module>
+<!--    <module>services/catapult-quarkus</module>-->
     <module>services/hero</module>
     <module>services/arrow</module>
     <module>services/villains</module>

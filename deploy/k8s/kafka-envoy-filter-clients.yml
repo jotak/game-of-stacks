@@ -1,13 +1,13 @@
 apiVersion: networking.istio.io/v1alpha3
 kind: EnvoyFilter
 metadata:
-  name: kafka-protocol
-  namespace: kafka
+  name: kafka-protocol-clients
+  namespace: default
 spec:
   configPatches:
     - applyTo: NETWORK_FILTER
       match:
-        context: SIDECAR_INBOUND
+        context: SIDECAR_OUTBOUND
         listener:
           portNumber: 9092
           filterChain:

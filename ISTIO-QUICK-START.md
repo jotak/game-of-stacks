@@ -9,7 +9,7 @@ make deploy-kafka
 # If you don't have already Istio deployed, to download and deploy Istio, run:
 make deploy-istio
 
-# Alternatively you can also deploy Istio without downloading:
+# Alternatively you can also deploy Istio without downloading (just set your Istio local installation path as in the example below):
 ISTIO_PATH=~/istio-1.5.0 make deploy-istio
 
 # Enable Istio on namespaces 'default' and 'kafka':

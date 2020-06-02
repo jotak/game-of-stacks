@@ -19,7 +19,7 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.io/scheme: "http"
         prometheus.io/port: "9090"
-#        sidecar.istio.io/statsInclusionPrefixes: cluster_manager,listener_manager,broker
+#        sidecar.istio.io/statsInclusionPrefixes: cluster_manager,listener_manager,listener,broker
       labels:
         project: gos
         type: game-object
